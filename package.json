@@ -1,0 +1,14 @@
+{
+  "name": "professional-e-commerce-store",
+  "version": "1.0.0",
+  "description": "متجر إلكتروني احترافي مع لوحة تحكم متكاملة",
+  "dependencies": {
+    "firebase": "^10.12.2",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0"
+  }
+}
