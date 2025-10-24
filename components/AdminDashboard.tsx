@@ -3,9 +3,8 @@ import { StoreContext } from '../context/StoreContext';
 import type { Order, Product, ProductOption, StoreSettings } from '../types';
 import { OrderStatus } from '../types';
 import { TrashIcon, PencilIcon, ArchiveBoxIcon, ClipboardDocumentListIcon, XMarkIcon, DragHandleIcon } from './icons';
-import { db, storage } from '../firebase';
+import { db } from '../firebase';
 import { collection, doc, addDoc, setDoc, deleteDoc, updateDoc, writeBatch } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 
 const ConfirmationModal: React.FC<{ isOpen: boolean; onClose: () => void; onConfirm: () => void; title: string; children: React.ReactNode }> = ({ isOpen, onClose, onConfirm, title, children }) => {
     if (!isOpen) return null;
@@ -131,8 +130,6 @@ const OrdersManagement: React.FC<{ orders: Order[] }> = ({ orders }) => {
 const ProductForm: React.FC<{ product?: Product; onSave: () => void; onCancel: () => void; }> = ({ product, onSave, onCancel }) => {
     const { state } = useContext(StoreContext);
     const [formData, setFormData] = useState<Product>(product || { id: '', name: '', description: '', price: 0, category: '', images: [], options: [] });
-    const [newImageFiles, setNewImageFiles] = useState<File[]>([]);
-    const [removedImageUrls, setRemovedImageUrls] = useState<string[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
     
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -142,20 +139,35 @@ const ProductForm: React.FC<{ product?: Product; onSave: () => void; onCancel: (
     
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
-            setNewImageFiles(prev => [...prev, ...Array.from(e.target.files)]);
+            const files = Array.from(e.target.files);
+            const imagePromises = files.map((file: File) => {
+                return new Promise<string>((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        if (event.target && typeof event.target.result === 'string') {
+                            resolve(event.target.result);
+                        } else {
+                            reject(new Error('Failed to read file'));
+                        }
+                    };
+                    reader.onerror = reject;
+                    reader.readAsDataURL(file);
+                });
+            });
+
+            Promise.all(imagePromises)
+                .then(base64Images => {
+                    setFormData(prev => ({ ...prev, images: [...prev.images, ...base64Images] }));
+                })
+                .catch(error => console.error("Error reading images:", error));
         }
     };
     
-    const handleRemoveExistingImage = (urlToRemove: string) => {
+    const handleRemoveImage = (indexToRemove: number) => {
         setFormData(prev => ({
             ...prev,
-            images: prev.images.filter(url => url !== urlToRemove)
+            images: prev.images.filter((_, index) => index !== indexToRemove)
         }));
-        setRemovedImageUrls(prev => [...prev, urlToRemove]);
-    };
-
-    const handleRemoveNewImage = (indexToRemove: number) => {
-        setNewImageFiles(prev => prev.filter((_, index) => index !== indexToRemove));
     };
 
     const handleOptionNameChange = (optionIndex: number, newName: string) => {
@@ -200,32 +212,8 @@ const ProductForm: React.FC<{ product?: Product; onSave: () => void; onCancel: (
         setIsSubmitting(true);
 
         try {
-            // 1. Upload new images to Firebase Storage
-            const uploadPromises = newImageFiles.map(file => {
-                const storageRef = ref(storage, `products/${Date.now()}-${file.name}`);
-                return uploadBytes(storageRef, file).then(snapshot => getDownloadURL(snapshot.ref));
-            });
-            const newImageUrls = await Promise.all(uploadPromises);
-
-            // 2. Delete removed images from Firebase Storage
-            const deletePromises = removedImageUrls.map(url => {
-                try {
-                    const imageRef = ref(storage, url);
-                    return deleteObject(imageRef);
-                } catch (error) {
-                    console.warn("Could not delete image, it might not be a storage object:", url, error);
-                    return Promise.resolve(); // Don't fail the whole operation
-                }
-            });
-            await Promise.all(deletePromises);
-
-            // 3. Prepare product data for Firestore
-            const finalProductData = {
-                ...formData,
-                images: [...formData.images, ...newImageUrls]
-            };
+            const finalProductData = { ...formData };
             
-            // 4. Save product to Firestore
             if (product?.id) {
                 // Update existing product
                 const { id, ...dataToUpdate } = finalProductData;
@@ -271,18 +259,10 @@ const ProductForm: React.FC<{ product?: Product; onSave: () => void; onCancel: (
                  <label className="block text-sm font-medium text-gray-700">صور المنتج</label>
                  <input type="file" multiple onChange={handleImageChange} className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"/>
                  <div className="flex gap-2 mt-2 flex-wrap min-h-[5rem] bg-gray-100 p-2 rounded-md border">
-                    {formData.images.map((url) => (
-                        <div key={url} className="relative w-20 h-20 rounded shadow-sm group">
-                            <img src={url} className="w-full h-full rounded object-cover" alt="Product image" />
-                            <button type="button" onClick={() => handleRemoveExistingImage(url)} className="absolute top-0 right-0 transform translate-x-1/2 -translate-y-1/2 bg-red-600 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110">
-                                <XMarkIcon className="w-3 h-3" />
-                            </button>
-                        </div>
-                    ))}
-                    {newImageFiles.map((file, i) => (
-                        <div key={i} className="relative w-20 h-20 rounded shadow-sm group">
-                            <img src={URL.createObjectURL(file)} className="w-full h-full rounded object-cover" alt={`New product image ${i+1}`} />
-                            <button type="button" onClick={() => handleRemoveNewImage(i)} className="absolute top-0 right-0 transform translate-x-1/2 -translate-y-1/2 bg-red-600 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110">
+                    {formData.images.map((img, i) => (
+                        <div key={`${i}-${img.substring(0, 30)}`} className="relative w-20 h-20 rounded shadow-sm group">
+                            <img src={img} className="w-full h-full rounded object-cover" alt={`Product image ${i+1}`} />
+                            <button type="button" onClick={() => handleRemoveImage(i)} className="absolute top-0 right-0 transform translate-x-1/2 -translate-y-1/2 bg-red-600 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110">
                                 <XMarkIcon className="w-3 h-3" />
                             </button>
                         </div>
@@ -361,20 +341,7 @@ const ProductsManagement: React.FC<{ products: Product[] }> = ({ products }) => 
     const confirmDelete = async () => {
         if (!productToDelete) return;
         try {
-            // Delete images from storage first
-            const deletePromises = productToDelete.images.map(url => {
-                try {
-                    return deleteObject(ref(storage, url));
-                } catch (error) {
-                    console.warn("Could not delete image:", url, error);
-                    return Promise.resolve();
-                }
-            });
-            await Promise.all(deletePromises);
-            
-            // Delete product document from firestore
             await deleteDoc(doc(db, "products", productToDelete.id));
-
             setProductToDelete(null);
         } catch (error) {
             console.error("Error deleting product: ", error);
@@ -456,7 +423,6 @@ const CategoriesManagement: React.FC<{ categories: string[], products: Product[]
 const SettingsManagement: React.FC<{ settings: StoreSettings }> = ({ settings: initialSettings }) => {
     const [settings, setSettings] = useState<StoreSettings>(initialSettings);
     const [newAdminPassword, setNewAdminPassword] = useState('');
-    const [newLogoFile, setNewLogoFile] = useState<File | null>(null);
     const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
@@ -487,7 +453,13 @@ const SettingsManagement: React.FC<{ settings: StoreSettings }> = ({ settings: i
 
     const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if(e.target.files && e.target.files[0]) {
-            setNewLogoFile(e.target.files[0]);
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                if (event.target && typeof event.target.result === 'string') {
+                    setSettings(prev => ({...prev, logo: event.target.result as string}));
+                }
+            };
+            reader.readAsDataURL(e.target.files[0]);
         }
     };
     
@@ -499,17 +471,10 @@ const SettingsManagement: React.FC<{ settings: StoreSettings }> = ({ settings: i
                 finalSettings.adminPassword = newAdminPassword;
             }
 
-            if (newLogoFile) {
-                const logoRef = ref(storage, `store/logo-${Date.now()}`);
-                const snapshot = await uploadBytes(logoRef, newLogoFile);
-                finalSettings.logo = await getDownloadURL(snapshot.ref);
-            }
-
             await setDoc(doc(db, "store", "settings"), finalSettings);
 
             alert('تم حفظ الإعدادات!');
             setNewAdminPassword('');
-            setNewLogoFile(null);
         } catch (error) {
             console.error("Error saving settings: ", error);
             alert("حدث خطأ أثناء حفظ الإعدادات.");
@@ -530,8 +495,7 @@ const SettingsManagement: React.FC<{ settings: StoreSettings }> = ({ settings: i
                 <div>
                     <label className="block font-semibold mb-1">شعار المتجر (اللوجو)</label>
                     <input type="file" accept="image/*" onChange={handleLogoChange} className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"/>
-                    {settings.logo && !newLogoFile && <img src={settings.logo} alt="logo" className="w-16 h-16 mt-2 rounded-full object-cover"/>}
-                    {newLogoFile && <img src={URL.createObjectURL(newLogoFile)} alt="new logo preview" className="w-16 h-16 mt-2 rounded-full object-cover"/>}
+                    {settings.logo && <img src={settings.logo} alt="logo" className="w-16 h-16 mt-2 rounded-full object-cover"/>}
                 </div>
                 <div className="md:col-span-2">
                     <label className="block font-semibold mb-1">عن المتجر (يظهر في الأسفل)</label>
