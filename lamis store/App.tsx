@@ -124,45 +124,10 @@ const ThemeInjector = () => {
   return null;
 };
 
-const MaintenanceScreen = () => {
-    const { state } = useContext(StoreContext);
-    
-    return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4 text-center">
-            <h1 className="text-4xl font-bold text-red-600 mb-4">عذراً، الموقع تحت الصيانة</h1>
-            <p className="text-lg text-gray-700 mb-6">نحن نعمل حالياً على تحسين تجربتكم. سنعود قريباً!</p>
-            <p className="text-gray-600">للاستفسارات العاجلة، يرجى التواصل معنا عبر واتساب.</p>
-            <a 
-                href={state.settings.contactInfo.whatsapp} 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                className="mt-4 inline-flex items-center gap-3 bg-green-500 text-white px-6 py-3 rounded-full shadow-lg hover:bg-green-600 transition-colors"
-            >
-                <WhatsAppIcon className="w-7 h-7"/>
-                <span>تواصل مع الدعم</span>
-            </a>
-        </div>
-    );
-};
-
-const LoadingScreen = () => (
-    <div className="flex items-center justify-center min-h-screen bg-base-100">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-primary"></div>
-    </div>
-);
-
 
 function App() {
     const { state } = useContext(StoreContext);
     const [isCartOpen, setIsCartOpen] = useState(false);
-    
-    if (state.dbStatus === 'loading') {
-        return <LoadingScreen />;
-    }
-
-    if (state.dbStatus === 'error') {
-        return <MaintenanceScreen />;
-    }
 
     return (
         <div className="flex flex-col min-h-screen bg-base-100 text-text-base">

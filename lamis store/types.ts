@@ -88,15 +88,11 @@ export interface AppState {
   cart: CartItem[];
   settings: StoreSettings;
   isLoggedIn: boolean;
-  dbStatus: 'loading' | 'connected' | 'error';
 }
 
 export type Action =
   | { type: 'SET_VIEW_MODE'; payload: ViewMode }
-  | { type: 'SET_STATE'; payload: Partial<AppState> }
-  | { type: 'SET_DB_STATUS'; payload: 'loading' | 'connected' | 'error' }
-  | { type: 'SET_PRODUCTS'; payload: Product[] }
-  | { type: 'SET_ORDERS'; payload: Order[] }
+  | { type: 'SET_STATE'; payload: AppState }
   | { type: 'UPDATE_SETTINGS'; payload: StoreSettings }
   | { type: 'ADD_PRODUCT'; payload: Product }
   | { type: 'UPDATE_PRODUCT'; payload: Product }

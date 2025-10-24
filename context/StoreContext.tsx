@@ -1,17 +1,19 @@
-
-import React, { createContext, useReducer, useEffect, ReactNode, Dispatch } from 'react';
-import type { AppState, Action } from '../types';
+import React, { createContext, useReducer, useEffect, Dispatch } from 'react';
+import type { AppState, Action, Product, Order, StoreSettings } from '../types';
 import { ViewMode } from '../types';
-import { INITIAL_PRODUCTS, INITIAL_SETTINGS } from '../constants';
+import { INITIAL_SETTINGS } from '../constants';
+import { db } from '../firebase';
+import { collection, onSnapshot, query, doc, orderBy } from 'firebase/firestore';
 
 const initialState: AppState = {
   viewMode: ViewMode.CUSTOMER,
-  products: INITIAL_PRODUCTS,
+  products: [],
   orders: [],
   cart: [],
-  settings: INITIAL_SETTINGS,
-  categories: [...new Set(INITIAL_PRODUCTS.map(p => p.category))],
+  settings: INITIAL_SETTINGS, // Fallback settings
+  categories: [],
   isLoggedIn: false,
+  dbStatus: 'loading',
 };
 
 const storeReducer = (state: AppState, action: Action): AppState => {
@@ -19,75 +21,18 @@ const storeReducer = (state: AppState, action: Action): AppState => {
     case 'SET_VIEW_MODE':
       return { ...state, viewMode: action.payload };
     case 'SET_STATE':
-      return action.payload;
+        return { ...state, ...action.payload };
+    case 'SET_DB_STATUS':
+        return { ...state, dbStatus: action.payload };
+    case 'SET_PRODUCTS': {
+        const products = action.payload;
+        const categories = ['الكل', ...new Set(products.map(p => p.category))];
+        return { ...state, products, categories };
+    }
+    case 'SET_ORDERS':
+        return { ...state, orders: action.payload };
     case 'UPDATE_SETTINGS':
       return { ...state, settings: action.payload };
-    case 'ADD_PRODUCT': {
-      const newCategory = action.payload.category;
-      const categories = state.categories.includes(newCategory)
-        ? state.categories
-        : [...state.categories, newCategory];
-      return { ...state, products: [...state.products, action.payload], categories };
-    }
-    case 'UPDATE_PRODUCT': {
-        const updatedProduct = action.payload;
-        const newCategory = updatedProduct.category;
-        const categories = state.categories.includes(newCategory)
-            ? state.categories
-            : [...state.categories, newCategory];
-        
-        const updatedCart = state.cart.map(item => {
-            if (item.product.id === updatedProduct.id) {
-                return { ...item, product: updatedProduct };
-            }
-            return item;
-        });
-
-        return {
-            ...state,
-            products: state.products.map(p => p.id === updatedProduct.id ? updatedProduct : p),
-            cart: updatedCart,
-            categories,
-        };
-    }
-    case 'DELETE_PRODUCT': {
-      const productIdToDelete = action.payload;
-      const productToDelete = state.products.find(p => p.id === productIdToDelete);
-      
-      if (!productToDelete) {
-        return state;
-      }
-
-      const updatedProducts = state.products.filter(p => p.id !== productIdToDelete);
-
-      const wasLastProductInCategory = !updatedProducts.some(p => p.category === productToDelete.category);
-
-      let updatedCategories = state.categories;
-      if (wasLastProductInCategory) {
-        updatedCategories = state.categories.filter(c => c !== productToDelete.category);
-      }
-      
-      return {
-        ...state,
-        products: updatedProducts,
-        cart: state.cart.filter(item => item.product.id !== productIdToDelete),
-        categories: updatedCategories,
-      };
-    }
-    case 'ADD_ORDER':
-      return { ...state, orders: [action.payload, ...state.orders] };
-    case 'DELETE_ORDER':
-        return {
-            ...state,
-            orders: state.orders.filter(o => o.id !== action.payload),
-        };
-    case 'REORDER_ORDERS':
-        return { ...state, orders: action.payload };
-    case 'UPDATE_ORDER_STATUS':
-      return {
-        ...state,
-        orders: state.orders.map(o => o.id === action.payload.orderId ? { ...o, status: action.payload.status } : o),
-      };
     case 'ADD_TO_CART': {
         const existingItemIndex = state.cart.findIndex(item => item.id === action.payload.id);
         if (existingItemIndex > -1) {
@@ -102,75 +47,14 @@ const storeReducer = (state: AppState, action: Action): AppState => {
         return { ...state, cart: state.cart.filter(item => item.id !== action.payload) };
     case 'CLEAR_CART':
         return { ...state, cart: [] };
-    case 'ADD_CATEGORY':
-        if (state.categories.includes(action.payload) || action.payload.trim() === '') {
-            return state;
-        }
-        return { ...state, categories: [...state.categories, action.payload.trim()] };
-    case 'UPDATE_CATEGORY': {
-        if (state.categories.includes(action.payload.newCategory) || action.payload.newCategory.trim() === '') {
-            return state;
-        }
-        const updatedProducts = state.products.map(p => p.category === action.payload.oldCategory ? { ...p, category: action.payload.newCategory.trim() } : p);
-        const updatedCart = state.cart.map(item => {
-            if (item.product.category === action.payload.oldCategory) {
-                return { ...item, product: { ...item.product, category: action.payload.newCategory.trim() } };
-            }
-            return item;
-        });
-
-        return {
-            ...state,
-            categories: state.categories.map(c => c === action.payload.oldCategory ? action.payload.newCategory.trim() : c),
-            products: updatedProducts,
-            cart: updatedCart,
-        };
-    }
-    case 'DELETE_CATEGORY': {
-        const categoryToDelete = action.payload;
-        const UNCATEGORIZED = 'غير مصنف';
-
-        const affectedProducts = state.products.filter(p => p.category === categoryToDelete);
-
-        if (affectedProducts.length === 0) {
-            return {
-                ...state,
-                categories: state.categories.filter(c => c !== categoryToDelete),
-            };
-        }
-        
-        const affectedProductIds = new Set(affectedProducts.map(p => p.id));
-
-        const updatedProducts = state.products.map(p => {
-            if (p.category === categoryToDelete) {
-                return { ...p, category: UNCATEGORIZED };
-            }
-            return p;
-        });
-
-        const updatedCart = state.cart.map(item => {
-            if (affectedProductIds.has(item.product.id)) {
-                return { ...item, product: { ...item.product, category: UNCATEGORIZED } };
-            }
-            return item;
-        });
-
-        let updatedCategories = state.categories.filter(c => c !== categoryToDelete);
-        if (!updatedCategories.includes(UNCATEGORIZED)) {
-            updatedCategories.push(UNCATEGORIZED);
-        }
-        
-        return {
-            ...state,
-            categories: updatedCategories,
-            products: updatedProducts,
-            cart: updatedCart,
-        };
-    }
-    case 'LOGIN':
+    case 'LOGIN': {
+        sessionStorage.setItem('isLoggedIn', 'true');
         return { ...state, isLoggedIn: true };
-    case 'LOGOUT':
+    }
+    case 'LOGOUT': {
+        sessionStorage.removeItem('isLoggedIn');
         return { ...state, isLoggedIn: false, viewMode: ViewMode.CUSTOMER };
+    }
     default:
       return state;
   }
@@ -185,27 +69,89 @@ export const StoreProvider = ({ children }: React.PropsWithChildren) => {
   const [state, dispatch] = useReducer(storeReducer, initialState);
 
   useEffect(() => {
+    // Restore cart from localStorage
     try {
-      const storedState = localStorage.getItem('ecomStoreState');
-      if (storedState) {
-        // Keep user logged out on refresh for security
-        const parsedState = JSON.parse(storedState);
-        parsedState.isLoggedIn = false; 
-        dispatch({ type: 'SET_STATE', payload: parsedState });
-      }
-    } catch (error) {
-      console.error("Could not parse stored state:", error);
-      localStorage.removeItem('ecomStoreState');
+        const savedCart = localStorage.getItem('ecomCart');
+        if (savedCart) {
+            dispatch({ type: 'SET_STATE', payload: { cart: JSON.parse(savedCart) } });
+        }
+    } catch (e) { console.error("Failed to load cart from localStorage", e)}
+
+    // Check session storage for login state
+    if (sessionStorage.getItem('isLoggedIn') === 'true') {
+        dispatch({ type: 'LOGIN' });
     }
+
+    // Firebase listeners
+    const unsubscribers: (() => void)[] = [];
+    try {
+        // Settings listener
+        const settingsUnsub = onSnapshot(doc(db, "store", "settings"), 
+            (doc) => {
+                if (doc.exists()) {
+                    dispatch({ type: 'UPDATE_SETTINGS', payload: doc.data() as StoreSettings });
+                } else {
+                    console.warn("Settings document does not exist! Using initial settings.");
+                }
+            },
+            (error) => {
+                console.error("Firebase settings listener error:", error);
+                dispatch({ type: 'SET_DB_STATUS', payload: 'error' });
+            }
+        );
+        unsubscribers.push(settingsUnsub);
+
+        // Products listener
+        const productsUnsub = onSnapshot(collection(db, "products"), 
+            (snapshot) => {
+                const products = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Product));
+                dispatch({ type: 'SET_PRODUCTS', payload: products });
+                if (state.dbStatus !== 'error') {
+                   dispatch({ type: 'SET_DB_STATUS', payload: 'connected' });
+                }
+            },
+            (error) => {
+                console.error("Firebase products listener error:", error);
+                dispatch({ type: 'SET_DB_STATUS', payload: 'error' });
+            }
+        );
+        unsubscribers.push(productsUnsub);
+        
+        // Orders listener
+        const ordersQuery = query(collection(db, "orders"), orderBy("createdAt", "desc"));
+        const ordersUnsub = onSnapshot(ordersQuery, 
+            (snapshot) => {
+                const orders = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Order));
+                dispatch({ type: 'SET_ORDERS', payload: orders });
+            },
+            (error) => {
+                console.error("Firebase orders listener error:", error);
+                // Don't set to error if products already loaded, it might be a permissions issue on orders only
+                if (state.dbStatus === 'loading') {
+                  dispatch({ type: 'SET_DB_STATUS', payload: 'error' });
+                }
+            }
+        );
+        unsubscribers.push(ordersUnsub);
+
+    } catch(error) {
+        console.error("Error setting up Firebase listeners:", error);
+        dispatch({ type: 'SET_DB_STATUS', payload: 'error' });
+    }
+    
+    // Cleanup listeners on unmount
+    return () => unsubscribers.forEach(unsub => unsub());
+
   }, []);
 
   useEffect(() => {
+    // Save cart to localStorage whenever it changes
     try {
-        localStorage.setItem('ecomStoreState', JSON.stringify(state));
-    } catch (error) {
-        console.error("Could not save state:", error);
+        localStorage.setItem('ecomCart', JSON.stringify(state.cart));
+    } catch (e) {
+        console.error("Failed to save cart to localStorage", e);
     }
-  }, [state]);
+  }, [state.cart]);
 
   return (
     <StoreContext.Provider value={{ state, dispatch }}>

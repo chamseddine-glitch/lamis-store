@@ -1,13 +1,10 @@
 
-
 import React, { useState, useContext, useMemo, useEffect } from 'react';
 import { StoreContext } from '../context/StoreContext';
-import type { Product, CartItem } from '../types';
+import type { Product, CartItem, Order } from '../types';
 import { OrderStatus } from '../types';
 import { ALGERIA_DATA } from '../constants';
 import { ShoppingCartIcon, XMarkIcon, ArchiveBoxIcon, CheckCircleIcon } from './icons';
-import { db } from '../firebase';
-import { collection, addDoc } from 'firebase/firestore';
 
 // ProductCard Component
 const ProductCard: React.FC<{ product: Product; onClick: () => void; }> = ({ product, onClick }) => {
@@ -55,7 +52,6 @@ const OrderModal: React.FC<{ product: Product | null; onClose: () => void; }> = 
     const [isClosing, setIsClosing] = useState(false);
     const [selectedImage, setSelectedImage] = useState(0);
     const [isOrderSuccessful, setIsOrderSuccessful] = useState(false);
-    const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
         document.body.style.overflow = 'hidden';
@@ -78,10 +74,7 @@ const OrderModal: React.FC<{ product: Product | null; onClose: () => void; }> = 
 
     const handleClose = () => {
         setIsClosing(true);
-        setTimeout(() => {
-            onClose();
-            // No need to reset here, will be reset on next open
-        }, 300);
+        setTimeout(onClose, 300);
     };
 
     const handleOptionChange = (optionName: string, value: string) => {
@@ -97,11 +90,11 @@ const OrderModal: React.FC<{ product: Product | null; onClose: () => void; }> = 
     const deliveryFee = deliveryType === 'home' ? state.settings.deliveryFeeHome : state.settings.deliveryFeeOffice;
     const totalPrice = product.price + deliveryFee;
 
-    const handleConfirmOrder = async (e: React.FormEvent) => {
+    const handleConfirmOrder = (e: React.FormEvent) => {
         e.preventDefault();
-        setIsSubmitting(true);
         const cartItemId = generateCartItemId(product.id, selectedOptions);
-        const newOrderData = {
+        const newOrder: Order = {
+            id: `order-${Date.now()}`,
             customerName,
             customerPhone,
             customerEmail,
@@ -116,15 +109,8 @@ const OrderModal: React.FC<{ product: Product | null; onClose: () => void; }> = 
             status: OrderStatus.PENDING,
             createdAt: new Date().toISOString()
         };
-        try {
-            await addDoc(collection(db, "orders"), newOrderData);
-            setIsOrderSuccessful(true);
-        } catch (error) {
-            console.error("Error creating order:", error);
-            alert("حدث خطأ أثناء إرسال الطلب. يرجى المحاولة مرة أخرى.");
-        } finally {
-            setIsSubmitting(false);
-        }
+        dispatch({ type: 'ADD_ORDER', payload: newOrder });
+        setIsOrderSuccessful(true);
     };
     
     const handleAddToCart = () => {
@@ -256,10 +242,10 @@ const OrderModal: React.FC<{ product: Product | null; onClose: () => void; }> = 
                                 </div>
                                 
                                 <div className="flex gap-4 mt-6">
-                                     <button type="submit" className="flex-1 bg-secondary text-white px-6 py-3 rounded-lg font-bold hover:bg-opacity-90 transition-all active:scale-95" disabled={isSubmitting}>
-                                        {isSubmitting ? 'جاري التأكيد...' : 'تأكيد الطلب'}
+                                     <button type="submit" className="flex-1 bg-secondary text-white px-6 py-3 rounded-lg font-bold hover:bg-opacity-90 transition-all active:scale-95">
+                                        تأكيد الطلب
                                     </button>
-                                    <button type="button" onClick={handleAddToCart} className="flex-1 bg-gray-200 text-text-base px-6 py-3 rounded-lg font-bold hover:bg-gray-300 transition-all active:scale-95" disabled={isSubmitting}>
+                                    <button type="button" onClick={handleAddToCart} className="flex-1 bg-gray-200 text-text-base px-6 py-3 rounded-lg font-bold hover:bg-gray-300 transition-all active:scale-95">
                                         <ShoppingCartIcon className="w-5 h-5 inline-block ml-2"/>
                                         إضافة إلى السلة
                                     </button>
@@ -278,7 +264,7 @@ export const CustomerView = () => {
     const [selectedCategory, setSelectedCategory] = useState<string>('الكل');
     const [orderingProduct, setOrderingProduct] = useState<Product | null>(null);
 
-    const categories = state.categories;
+    const categories = useMemo(() => ['الكل', ...new Set(state.products.map(p => p.category))], [state.products]);
     
     const filteredProducts = useMemo(() => {
         if (selectedCategory === 'الكل') return state.products;

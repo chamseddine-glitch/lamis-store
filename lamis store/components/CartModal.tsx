@@ -1,14 +1,10 @@
 
-
 import React, { useState, useContext, useMemo, useEffect } from 'react';
 import { StoreContext } from '../context/StoreContext';
 import type { Order } from '../types';
 import { OrderStatus } from '../types';
 import { ALGERIA_DATA } from '../constants';
 import { XMarkIcon, TrashIcon, ShoppingCartIcon, CheckCircleIcon } from './icons';
-import { db } from '../firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-
 
 const OrderSuccessMessage: React.FC<{ onClose: () => void }> = ({ onClose }) => (
     <div className="text-center p-8 flex flex-col items-center justify-center animate-fade-in-up">
@@ -28,7 +24,6 @@ export const CartModal: React.FC<{ isOpen: boolean; onClose: () => void; }> = ({
     const { cart, settings } = state;
     const [isClosing, setIsClosing] = useState(false);
     const [view, setView] = useState<'cart' | 'checkout' | 'success'>('cart');
-    const [isSubmitting, setIsSubmitting] = useState(false);
     
     const [customerName, setCustomerName] = useState('');
     const [customerPhone, setCustomerPhone] = useState('');
@@ -61,13 +56,7 @@ export const CartModal: React.FC<{ isOpen: boolean; onClose: () => void; }> = ({
         setTimeout(() => {
             onClose();
             setIsClosing(false);
-            // Reset state on close after animation
-            setTimeout(() => {
-                setView('cart');
-                setCustomerName('');
-                setCustomerPhone('');
-                // etc.
-            }, 300);
+            setTimeout(() => setView('cart'), 300);
         }, 300);
     };
 
@@ -75,12 +64,11 @@ export const CartModal: React.FC<{ isOpen: boolean; onClose: () => void; }> = ({
         dispatch({ type: 'REMOVE_FROM_CART', payload: cartItemId });
     };
 
-    const handleCheckoutSubmit = async (e: React.FormEvent) => {
+    const handleCheckoutSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (cart.length === 0) return;
-        setIsSubmitting(true);
-
-        const newOrderData = {
+        const newOrder: Order = {
+            id: `order-${Date.now()}`,
             customerName,
             customerPhone,
             customerEmail,
@@ -95,17 +83,9 @@ export const CartModal: React.FC<{ isOpen: boolean; onClose: () => void; }> = ({
             status: OrderStatus.PENDING,
             createdAt: new Date().toISOString()
         };
-
-        try {
-            await addDoc(collection(db, "orders"), newOrderData);
-            dispatch({ type: 'CLEAR_CART' });
-            setView('success');
-        } catch (error) {
-            console.error("Error creating order: ", error);
-            alert("حدث خطأ أثناء إرسال الطلب. يرجى المحاولة مرة أخرى.");
-        } finally {
-            setIsSubmitting(false);
-        }
+        dispatch({ type: 'ADD_ORDER', payload: newOrder });
+        dispatch({ type: 'CLEAR_CART' });
+        setView('success');
     };
 
     const baladiyats = ALGERIA_DATA.find(w => w.wilaya_name_ar === selectedWilaya)?.baladiyats || [];
@@ -224,11 +204,11 @@ export const CartModal: React.FC<{ isOpen: boolean; onClose: () => void; }> = ({
             </div>
             
             <div className="flex gap-4 mt-6">
-                    <button type="button" onClick={() => setView('cart')} className="flex-1 bg-gray-200 text-text-base px-6 py-3 rounded-lg font-bold hover:bg-gray-300 transition-all active:scale-95" disabled={isSubmitting}>
+                    <button type="button" onClick={() => setView('cart')} className="flex-1 bg-gray-200 text-text-base px-6 py-3 rounded-lg font-bold hover:bg-gray-300 transition-all active:scale-95">
                     العودة للسلة
                 </button>
-                    <button type="submit" className="flex-1 bg-secondary text-white px-6 py-3 rounded-lg font-bold hover:bg-opacity-90 transition-all active:scale-95" disabled={isSubmitting}>
-                    {isSubmitting ? 'جاري التأكيد...' : 'تأكيد الطلب'}
+                    <button type="submit" className="flex-1 bg-secondary text-white px-6 py-3 rounded-lg font-bold hover:bg-opacity-90 transition-all active:scale-95">
+                    تأكيد الطلب
                 </button>
             </div>
         </form>
