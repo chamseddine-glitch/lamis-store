@@ -1,7 +1,6 @@
-
 import React, { useState, useContext, useEffect } from 'react';
 import { StoreContext } from '../context/StoreContext';
-import type { Order, Product, ProductOption, StoreSettings, Category } from '../types';
+import type { Order, Product, ProductOption, StoreSettings } from '../types';
 import { OrderStatus } from '../types';
 import { TrashIcon, PencilIcon, ArchiveBoxIcon, ClipboardDocumentListIcon, XMarkIcon, DragHandleIcon } from './icons';
 
@@ -282,9 +281,8 @@ const ProductForm: React.FC<{ product?: Product; onSave: (product: Product) => v
                         className="w-full p-2 border rounded focus:ring-primary focus:border-primary transition" 
                         required 
                     />
-                     {/* FIX: Correctly map over category objects for datalist options */}
                      <datalist id="categories-list">
-                        {state.categories.map(cat => <option key={cat.id} value={cat.name} />)}
+                        {state.categories.map(cat => <option key={cat} value={cat} />)}
                     </datalist>
                 </div>
             </div>
@@ -441,12 +439,11 @@ const ProductsManagement: React.FC<{ products: Product[] }> = ({ products }) => 
     );
 };
 
-// FIX: Changed props and internal logic to handle Category objects instead of strings
-const CategoriesManagement: React.FC<{ categories: Category[] }> = ({ categories }) => {
+const CategoriesManagement: React.FC<{ categories: string[] }> = ({ categories }) => {
     const { dispatch } = useContext(StoreContext);
     const [newCategory, setNewCategory] = useState('');
-    const [editingCategory, setEditingCategory] = useState<{ old: Category; new: string } | null>(null);
-    const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
+    const [editingCategory, setEditingCategory] = useState<{ old: string; new: string } | null>(null);
+    const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
 
     const handleAddCategory = (e: React.FormEvent) => {
         e.preventDefault();
@@ -456,26 +453,26 @@ const CategoriesManagement: React.FC<{ categories: Category[] }> = ({ categories
         }
     };
 
-    const handleDeleteCategory = (category: Category) => {
+    const handleDeleteCategory = (category: string) => {
         setCategoryToDelete(category);
     };
 
     const confirmDeleteCategory = () => {
         if (categoryToDelete) {
-            dispatch({ type: 'DELETE_CATEGORY', payload: categoryToDelete.id });
+            dispatch({ type: 'DELETE_CATEGORY', payload: categoryToDelete });
             setCategoryToDelete(null);
         }
     };
 
     const handleUpdateCategory = () => {
-        if (editingCategory && editingCategory.new.trim() && editingCategory.old.name !== editingCategory.new.trim()) {
-            dispatch({ type: 'UPDATE_CATEGORY', payload: { id: editingCategory.old.id, oldName: editingCategory.old.name, newName: editingCategory.new.trim() } });
+        if (editingCategory && editingCategory.new.trim() && editingCategory.old !== editingCategory.new.trim()) {
+            dispatch({ type: 'UPDATE_CATEGORY', payload: { oldCategory: editingCategory.old, newCategory: editingCategory.new.trim() } });
         }
         setEditingCategory(null);
     };
     
-    const startEditing = (category: Category) => {
-        setEditingCategory({ old: category, new: category.name });
+    const startEditing = (category: string) => {
+        setEditingCategory({ old: category, new: category });
     };
 
     return (
@@ -495,8 +492,8 @@ const CategoriesManagement: React.FC<{ categories: Category[] }> = ({ categories
             </form>
             <div className="space-y-2">
                 {categories.map(category => (
-                    <div key={category.id} className="flex items-center justify-between p-3 bg-gray-50 rounded hover:shadow-sm transition-shadow">
-                        {editingCategory?.old.id === category.id ? (
+                    <div key={category} className="flex items-center justify-between p-3 bg-gray-50 rounded hover:shadow-sm transition-shadow">
+                        {editingCategory?.old === category ? (
                             <input
                                 type="text"
                                 value={editingCategory.new}
@@ -507,10 +504,10 @@ const CategoriesManagement: React.FC<{ categories: Category[] }> = ({ categories
                                 autoFocus
                             />
                         ) : (
-                            <span className="font-semibold">{category.name}</span>
+                            <span className="font-semibold">{category}</span>
                         )}
                         <div className="flex items-center gap-2">
-                           {editingCategory?.old.id !== category.id && (
+                           {editingCategory?.old !== category && (
                                 <>
                                     <button onClick={() => startEditing(category)} className="text-blue-600 p-2 hover:bg-blue-100 rounded-full transition-colors"><PencilIcon className="w-5 h-5"/></button>
                                     <button onClick={() => handleDeleteCategory(category)} className="text-red-600 p-2 hover:bg-red-100 rounded-full transition-colors"><TrashIcon className="w-5 h-5"/></button>
@@ -531,7 +528,7 @@ const CategoriesManagement: React.FC<{ categories: Category[] }> = ({ categories
                 onConfirm={confirmDeleteCategory}
                 title="تأكيد حذف التصنيف"
             >
-                <p>هل أنت متأكد من حذف التصنيف: <strong>{categoryToDelete?.name}</strong>؟ سيتم نقل المنتجات في هذا التصنيف إلى "غير مصنف".</p>
+                <p>هل أنت متأكد من حذف التصنيف: <strong>{categoryToDelete}</strong>؟ سيتم نقل المنتجات في هذا التصنيف إلى "غير مصنف".</p>
             </ConfirmationModal>
         </div>
     );
@@ -661,8 +658,7 @@ const SettingsManagement: React.FC<{ settings: StoreSettings }> = ({ settings: i
     );
 };
 
-// FIX: Changed props to pass Category objects instead of strings
-const ProductsAndCategoriesManagement = ({ products, categories }: { products: Product[], categories: Category[] }) => {
+const ProductsAndCategoriesManagement = ({ products, categories }: { products: Product[], categories: string[] }) => {
     return (
         <div className="space-y-8 animate-fade-in-up">
             <ProductsManagement products={products} />

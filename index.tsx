@@ -10,8 +10,9 @@ if (!rootElement) {
 
 const root = ReactDOM.createRoot(rootElement);
 root.render(
-  // FIX: Removed React.StrictMode to resolve a potential type conflict with StoreProvider that was causing a "missing children" error.
-  <StoreProvider>
-    <App />
-  </StoreProvider>
+  <React.StrictMode>
+    <StoreProvider>
+      <App />
+    </StoreProvider>
+  </React.StrictMode>
 );

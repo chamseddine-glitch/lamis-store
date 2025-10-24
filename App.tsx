@@ -124,29 +124,10 @@ const ThemeInjector = () => {
   return null;
 };
 
-const LoadingScreen = () => (
-    <div className="flex items-center justify-center min-h-screen bg-base-100">
-        <div className="text-center">
-            <div className="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-primary mx-auto"></div>
-            <h2 className="mt-4 text-2xl font-semibold text-text-base">جاري تحميل المتجر...</h2>
-            <p className="text-text-muted">لحظات من فضلك.</p>
-        </div>
-    </div>
-);
-
 
 function App() {
     const { state } = useContext(StoreContext);
     const [isCartOpen, setIsCartOpen] = useState(false);
-
-    if (state.loading) {
-        return (
-            <>
-                <ThemeInjector />
-                <LoadingScreen />
-            </>
-        );
-    }
 
     return (
         <div className="flex flex-col min-h-screen bg-base-100 text-text-base">
