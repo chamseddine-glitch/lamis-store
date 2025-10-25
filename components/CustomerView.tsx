@@ -496,21 +496,32 @@ export const CustomerView: React.FC<{ activeCategory: string; showOffersOnly: bo
     useEffect(() => {
         const handleScroll = () => {
             const currentScrollY = window.scrollY;
-            const headerHeight = 70; // Approx height of the main header
+            const headerHeight = 80; // A bit of buffer for the header
+            const scrollDelta = currentScrollY - lastScrollY.current;
 
+            // Always show the bar when at the top of the page
             if (currentScrollY < headerHeight) {
                 setIsFilterBarVisible(true);
-                lastScrollY.current = currentScrollY;
+                lastScrollY.current = Math.max(0, currentScrollY);
                 return;
             }
 
-            if (currentScrollY > lastScrollY.current) {
-                setIsFilterBarVisible(false); // Scrolling down
-            } else {
-                setIsFilterBarVisible(true); // Scrolling up
+            // A threshold to prevent jittery behavior on small or bouncy scrolls
+            if (Math.abs(scrollDelta) < 10) {
+                return;
             }
 
-            lastScrollY.current = currentScrollY;
+            // Hide on scroll down, show on scroll up
+            if (scrollDelta > 0) {
+                // User is scrolling down
+                setIsFilterBarVisible(false);
+            } else {
+                // User is scrolling up
+                setIsFilterBarVisible(true);
+            }
+
+            // Update last scroll position for the next event
+            lastScrollY.current = Math.max(0, currentScrollY);
         };
 
         window.addEventListener('scroll', handleScroll, { passive: true });
@@ -564,6 +575,19 @@ export const CustomerView: React.FC<{ activeCategory: string; showOffersOnly: bo
         }
     };
 
+    const getGridClass = () => {
+        const layout = state.settings.productGridLayout || 'default';
+        switch (layout) {
+            case 'condensed':
+                return 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4';
+            case 'large':
+                return 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8';
+            case 'default':
+            default:
+                return 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6';
+        }
+    };
+
     return (
         <div className="bg-base-100 dark:bg-gray-900 min-h-screen">
             <main className="container mx-auto px-4 py-8">
@@ -594,7 +618,7 @@ export const CustomerView: React.FC<{ activeCategory: string; showOffersOnly: bo
                     </div>
                 </div>
 
-                <div key={activeCategory + (showOffersOnly ? 'offers' : '') + searchQuery} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                <div key={activeCategory + (showOffersOnly ? 'offers' : '') + searchQuery} className={getGridClass()}>
                     {filteredProducts.length > 0 ? (
                         filteredProducts.map((product, index) => (
                              <div key={product.id} className="animate-fade-in-up" style={{ animationDelay: `${Math.min(index * 50, 1000)}ms` }}>

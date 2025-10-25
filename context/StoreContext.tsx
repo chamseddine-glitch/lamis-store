@@ -14,6 +14,7 @@ const initialState: AppState = {
   categories: ['الكل', ...(INITIAL_SETTINGS.managedCategories || [])],
   isLoggedIn: false,
   dbStatus: 'loading',
+  settingsLoaded: false,
   themeMode: 'light', // Default to light mode
   toasts: [],
 };
@@ -26,6 +27,8 @@ const storeReducer = (state: AppState, action: Action): AppState => {
         return { ...state, ...action.payload };
     case 'SET_DB_STATUS':
         return { ...state, dbStatus: action.payload };
+    case 'SETTINGS_LOADED':
+        return { ...state, settingsLoaded: true };
     case 'TOGGLE_THEME_MODE': {
         const newMode = state.themeMode === 'dark' ? 'light' : 'dark';
         return { ...state, themeMode: newMode };
@@ -66,6 +69,7 @@ const storeReducer = (state: AppState, action: Action): AppState => {
         deliveryCompanies: firestoreSettings.deliveryCompanies || INITIAL_SETTINGS.deliveryCompanies,
         managedCategories: firestoreSettings.managedCategories || INITIAL_SETTINGS.managedCategories,
         productCardStyle: firestoreSettings.productCardStyle || INITIAL_SETTINGS.productCardStyle,
+        productGridLayout: firestoreSettings.productGridLayout || INITIAL_SETTINGS.productGridLayout,
       };
       
       const categories = ['الكل', ...(settings.managedCategories || [])];
@@ -145,6 +149,7 @@ export const StoreProvider = ({ children }: React.PropsWithChildren) => {
                 } else {
                     console.warn("Settings document does not exist! Using initial settings.");
                 }
+                dispatch({ type: 'SETTINGS_LOADED' });
             },
             (error) => {
                 console.error("Firebase settings listener error:", error);

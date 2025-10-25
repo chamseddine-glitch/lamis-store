@@ -145,7 +145,7 @@ const FloatingWhatsApp = () => {
 
 const ThemeInjector = () => {
   const { state } = useContext(StoreContext);
-  const { settings, themeMode, dbStatus } = state;
+  const { settings, themeMode, settingsLoaded } = state;
 
   useEffect(() => {
     const root = document.documentElement;
@@ -164,12 +164,12 @@ const ThemeInjector = () => {
     root.style.setProperty('--color-text-muted', settings.theme.textMuted);
     
     // Dynamically update page title and favicon
-    document.title = dbStatus === 'loading' ? 'جاري التحميل...' : settings.storeName;
+    document.title = settingsLoaded ? settings.storeName : 'جاري التحميل...';
     const favicon = document.getElementById('favicon') as HTMLLinkElement | null;
     if (favicon && settings.logo) {
       favicon.href = settings.logo;
     }
-  }, [settings, themeMode, dbStatus]);
+  }, [settings, themeMode, settingsLoaded]);
 
   return null;
 };
@@ -290,7 +290,7 @@ function App() {
     };
     
     const renderContent = () => {
-        if (state.dbStatus === 'loading') {
+        if (state.dbStatus === 'loading' && !state.settingsLoaded) {
             return <LoadingScreen />;
         }
 

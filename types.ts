@@ -98,6 +98,7 @@ export interface StoreSettings {
   adminPassword: string;
   managedCategories?: string[];
   productCardStyle?: 'default' | 'minimal' | 'overlay';
+  productGridLayout?: 'default' | 'condensed' | 'large';
 }
 
 export interface ToastMessage {
@@ -115,6 +116,7 @@ export interface AppState {
   settings: StoreSettings;
   isLoggedIn: boolean;
   dbStatus: 'loading' | 'connected' | 'error';
+  settingsLoaded: boolean;
   themeMode: 'light' | 'dark';
   toasts: ToastMessage[];
 }
@@ -123,6 +125,7 @@ export type Action =
   | { type: 'SET_VIEW_MODE'; payload: ViewMode }
   | { type: 'SET_STATE'; payload: Partial<AppState> }
   | { type: 'SET_DB_STATUS'; payload: 'loading' | 'connected' | 'error' }
+  | { type: 'SETTINGS_LOADED' }
   | { type: 'TOGGLE_THEME_MODE' }
   | { type: 'SET_PRODUCTS'; payload: Product[] }
   | { type: 'SET_ORDERS'; payload: Order[] }

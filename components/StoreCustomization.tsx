@@ -116,6 +116,10 @@ export const StoreCustomization: React.FC<{ settings: StoreSettings; onSave: (ne
     const handleCardStyleChange = (style: 'default' | 'minimal' | 'overlay') => {
         setSettings(prev => ({ ...prev, productCardStyle: style }));
     };
+
+    const handleGridLayoutChange = (layout: 'default' | 'condensed' | 'large') => {
+        setSettings(prev => ({ ...prev, productGridLayout: layout }));
+    };
     
     const handleAdminChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -141,6 +145,13 @@ export const StoreCustomization: React.FC<{ settings: StoreSettings; onSave: (ne
         {id: 'minimal', label: 'بسيط', desc: 'تصميم نظيف يركز على الصورة والسعر.'},
         {id: 'overlay', label: 'متراكب', desc: 'تصميم عصري يعرض التفاصيل فوق الصورة.'}
     ];
+
+    const gridLayouts: {id: 'default' | 'condensed' | 'large'; label: string; desc: string}[] = [
+        {id: 'default', label: 'افتراضي', desc: 'عرض متوازن ومناسب لمعظم الشاشات.'},
+        {id: 'condensed', label: 'مكثف', desc: 'عرض عدد أكبر من المنتجات في صف واحد.'},
+        {id: 'large', label: 'واسع', desc: 'عرض منتجات أقل مع صور أكبر وتركيز أعلى.'}
+    ];
+
 
     return (
         <div className="animate-fade-in-up space-y-8">
@@ -182,6 +193,26 @@ export const StoreCustomization: React.FC<{ settings: StoreSettings; onSave: (ne
                 </div>
             </div>
 
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md space-y-6">
+                <h4 className="text-xl font-bold">تقسيم عرض المنتجات</h4>
+                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {gridLayouts.map(layout => (
+                        <label key={layout.id} className={`flex flex-col text-center p-4 bg-white dark:bg-slate-800 rounded-lg border-2 transition-all cursor-pointer ${settings.productGridLayout === layout.id ? 'border-primary shadow-md' : 'border-gray-200 dark:border-slate-700 hover:border-primary/50'}`}>
+                            <input
+                                type="radio"
+                                name="productGridLayout"
+                                value={layout.id}
+                                checked={settings.productGridLayout === layout.id}
+                                onChange={() => handleGridLayoutChange(layout.id)}
+                                className="absolute w-0 h-0 opacity-0"
+                            />
+                            <span className="font-bold text-lg">{layout.label}</span>
+                            <span className="text-sm text-text-muted mt-1">{layout.desc}</span>
+                        </label>
+                    ))}
+                </div>
+            </div>
+            
             <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md space-y-6">
                 <h4 className="text-xl font-bold">شكل بطاقة المنتج</h4>
                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
