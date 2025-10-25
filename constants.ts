@@ -135,4 +135,9 @@ export const INITIAL_SETTINGS: StoreSettings = {
   managedCategories: ['ملابس', 'أحذية', 'إلكترونيات'],
   productCardStyle: 'default',
   productGridLayout: 'default',
+  storeNameStyle: {
+    style: 'default',
+    gradientFrom: '#818cf8',
+    gradientTo: '#4f46e5',
+  },
 };

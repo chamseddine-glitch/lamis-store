@@ -12,7 +12,7 @@ const InputField: React.FC<{ label: string; name: string; value: string; onChang
     </div>
 );
 
-const ColorPicker: React.FC<{ label: string; name: keyof ThemeColors; value: string; onChange: (name: keyof ThemeColors, value: string) => void }> = ({ label, name, value, onChange }) => (
+const ColorPicker: React.FC<{ label: string; name: string; value: string; onChange: (name: string, value: string) => void }> = ({ label, name, value, onChange }) => (
     <div className="flex items-center gap-3">
         <label htmlFor={name} className="text-sm font-medium">{label}</label>
         <input 
@@ -119,6 +119,16 @@ export const StoreCustomization: React.FC<{ settings: StoreSettings; onSave: (ne
             }
         }));
     };
+    
+    const handleStoreNameStyleChange = (prop: keyof NonNullable<StoreSettings['storeNameStyle']>, value: string | 'default' | 'gradient') => {
+        setSettings(prev => ({
+            ...prev,
+            storeNameStyle: {
+                ...prev.storeNameStyle,
+                [prop]: value,
+            } as StoreSettings['storeNameStyle'],
+        }));
+    };
 
     const handleCardStyleChange = (style: 'default' | 'minimal' | 'overlay') => {
         setSettings(prev => ({ ...prev, productCardStyle: style }));
@@ -189,6 +199,59 @@ export const StoreCustomization: React.FC<{ settings: StoreSettings; onSave: (ne
             </div>
 
             <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md space-y-6">
+                <h4 className="text-xl font-bold">جماليات اسم المتجر</h4>
+                <div className="space-y-2">
+                    <label className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:border-primary/50 transition-colors">
+                        <input
+                            type="radio"
+                            name="storeNameStyle"
+                            value="default"
+                            checked={settings.storeNameStyle?.style === 'default'}
+                            onChange={() => handleStoreNameStyleChange('style', 'default')}
+                            className="text-primary focus:ring-primary"
+                        />
+                        <div>
+                            <span className="font-semibold">اللون الأساسي</span>
+                            <p className="text-sm text-text-muted">يستخدم اللون الأساسي المحدد للمتجر.</p>
+                        </div>
+                    </label>
+                    <label className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:border-primary/50 transition-colors">
+                        <input
+                            type="radio"
+                            name="storeNameStyle"
+                            value="gradient"
+                            checked={settings.storeNameStyle?.style === 'gradient'}
+                            onChange={() => handleStoreNameStyleChange('style', 'gradient')}
+                            className="text-primary focus:ring-primary"
+                        />
+                        <div>
+                            <span className="font-semibold">تدرج لوني</span>
+                            <p className="text-sm text-text-muted">يضيف تدرجًا لونيًا جذابًا لاسم المتجر.</p>
+                        </div>
+                    </label>
+                </div>
+                {settings.storeNameStyle?.style === 'gradient' && (
+                    <div className="p-4 border rounded-lg bg-gray-50 dark:bg-slate-900/50 dark:border-slate-700 animate-fade-in-up">
+                        <h5 className="font-bold mb-3">ألوان التدرج:</h5>
+                        <div className="flex flex-col md:flex-row gap-6">
+                            <ColorPicker 
+                                label="من" 
+                                name="gradientFrom" 
+                                value={settings.storeNameStyle?.gradientFrom || '#818cf8'} 
+                                onChange={(_, value) => handleStoreNameStyleChange('gradientFrom', value)} 
+                            />
+                            <ColorPicker 
+                                label="إلى" 
+                                name="gradientTo" 
+                                value={settings.storeNameStyle?.gradientTo || '#4f46e5'} 
+                                onChange={(_, value) => handleStoreNameStyleChange('gradientTo', value)} 
+                            />
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md space-y-6">
                 <div className="flex justify-between items-center">
                     <h4 className="text-xl font-bold">ألوان المتجر</h4>
                     <div className="flex items-center bg-gray-200 dark:bg-slate-700 p-1 rounded-full">
@@ -201,12 +264,12 @@ export const StoreCustomization: React.FC<{ settings: StoreSettings; onSave: (ne
                     </div>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-6 p-4 border rounded-lg bg-gray-50 dark:bg-slate-900/50 dark:border-slate-700">
-                    <ColorPicker label="اللون الأساسي" name="primary" value={settings.theme[editingThemeMode].primary} onChange={handleThemeChange} />
-                    <ColorPicker label="اللون الثانوي" name="secondary" value={settings.theme[editingThemeMode].secondary} onChange={handleThemeChange} />
-                    <ColorPicker label="لون التنبيه" name="accent" value={settings.theme[editingThemeMode].accent} onChange={handleThemeChange} />
-                    <ColorPicker label="لون الخلفية" name="background" value={settings.theme[editingThemeMode].background} onChange={handleThemeChange} />
-                    <ColorPicker label="لون النص" name="text" value={settings.theme[editingThemeMode].text} onChange={handleThemeChange} />
-                    <ColorPicker label="لون النص الباهت" name="textMuted" value={settings.theme[editingThemeMode].textMuted} onChange={handleThemeChange} />
+                    <ColorPicker label="اللون الأساسي" name="primary" value={settings.theme[editingThemeMode].primary} onChange={handleThemeChange as any} />
+                    <ColorPicker label="اللون الثانوي" name="secondary" value={settings.theme[editingThemeMode].secondary} onChange={handleThemeChange as any} />
+                    <ColorPicker label="لون التنبيه" name="accent" value={settings.theme[editingThemeMode].accent} onChange={handleThemeChange as any} />
+                    <ColorPicker label="لون الخلفية" name="background" value={settings.theme[editingThemeMode].background} onChange={handleThemeChange as any} />
+                    <ColorPicker label="لون النص" name="text" value={settings.theme[editingThemeMode].text} onChange={handleThemeChange as any} />
+                    <ColorPicker label="لون النص الباهت" name="textMuted" value={settings.theme[editingThemeMode].textMuted} onChange={handleThemeChange as any} />
                 </div>
             </div>
 

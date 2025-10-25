@@ -1,5 +1,4 @@
 
-
 import React, { useContext, useEffect, useState, useRef } from 'react';
 import { StoreContext } from './context/StoreContext';
 import { ViewMode, ToastMessage } from './types';
@@ -10,7 +9,7 @@ import { ShoppingCartIcon, UserShieldIcon, UserCircleIcon, WhatsAppIcon, LogoutI
 import { CartModal } from './components/CartModal';
 import { SideMenu } from './components/SideMenu';
 
-const Header = ({ onCartClick, onMenuClick, onSearchToggle, isSearchOpen, searchQuery, setSearchQuery }: { onCartClick: () => void; onMenuClick: () => void; onSearchToggle: () => void; isSearchOpen: boolean; searchQuery: string; setSearchQuery: (query: string) => void; }) => {
+const Header = ({ isVisible, onCartClick, onMenuClick, onSearchToggle, isSearchOpen }: { isVisible: boolean; onCartClick: () => void; onMenuClick: () => void; onSearchToggle: () => void; isSearchOpen: boolean; }) => {
     const { state, dispatch } = useContext(StoreContext);
     const { settings, viewMode, cart, isLoggedIn, themeMode } = state;
 
@@ -22,27 +21,40 @@ const Header = ({ onCartClick, onMenuClick, onSearchToggle, isSearchOpen, search
         }
     };
     
-    const searchInputRef = useRef<HTMLInputElement>(null);
     const toggleTheme = () => dispatch({ type: 'TOGGLE_THEME_MODE' });
 
-    useEffect(() => {
-        if (isSearchOpen) {
-            // A short delay to allow the element to be rendered before focusing
-            setTimeout(() => searchInputRef.current?.focus(), 100);
+    const getStoreNameClasses = () => {
+        if (settings.storeNameStyle?.style === 'gradient') {
+            return 'bg-clip-text text-transparent bg-gradient-to-r';
         }
-    }, [isSearchOpen]);
+        return 'text-primary';
+    };
+
+    const getStoreNameInlineStyle = () => {
+        const { storeNameStyle } = settings;
+        if (storeNameStyle?.style === 'gradient' && storeNameStyle.gradientFrom && storeNameStyle.gradientTo) {
+            return { backgroundImage: `linear-gradient(to right, ${storeNameStyle.gradientFrom}, ${storeNameStyle.gradientTo})` };
+        }
+        return {};
+    };
+
 
     return (
-        <header className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md shadow-sm sticky top-0 z-40">
-            <div className="container mx-auto px-4 py-3 flex justify-between items-center">
+        <header className={`bg-white/80 dark:bg-gray-900/80 backdrop-blur-md shadow-sm sticky top-0 z-40 transition-transform duration-300 ${isVisible ? 'translate-y-0' : '-translate-y-full'}`}>
+            <div className="container mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-y-3">
                 <div className="flex items-center gap-4">
                      <button onClick={onMenuClick} aria-label="فتح القائمة" className="group">
                         <HamburgerIcon className="h-7 w-7 text-text-muted group-hover:text-primary transition-all duration-200 transform group-hover:scale-110"/>
                     </button>
                     <img src={settings.logo} alt="Store Logo" className="h-10 w-auto"/>
-                    <h1 className="text-xl md:text-2xl font-bold text-primary">{settings.storeName}</h1>
+                    <h1 
+                        className={`text-xl md:text-2xl font-bold ${getStoreNameClasses()}`}
+                        style={getStoreNameInlineStyle()}
+                    >
+                        {settings.storeName}
+                    </h1>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="w-full md:w-auto flex items-center justify-around md:justify-end md:gap-2 border-t pt-3 md:border-t-0 md:pt-0">
                     <button onClick={toggleTheme} className="group p-2" aria-label="تبديل الوضع">
                         {themeMode === 'light' ? (
                             <MoonIcon className="h-7 w-7 text-text-muted group-hover:text-primary transition-all duration-200 transform group-hover:scale-110"/>
@@ -81,21 +93,6 @@ const Header = ({ onCartClick, onMenuClick, onSearchToggle, isSearchOpen, search
                     ) : null }
                 </div>
             </div>
-            {isSearchOpen && (
-                <div className="absolute top-full left-0 right-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm p-4 shadow-lg border-t dark:border-slate-700 animate-fade-in-down">
-                    <div className="relative container mx-auto">
-                        <SearchIcon className="w-5 h-5 text-gray-400 absolute top-1/2 right-4 transform -translate-y-1/2 pointer-events-none" />
-                        <input
-                            ref={searchInputRef}
-                            type="text"
-                            placeholder="ابحث عن منتج..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full bg-gray-100 dark:bg-gray-700 border-2 border-transparent focus:border-primary focus:ring-0 rounded-lg py-3 pr-11 pl-4 transition-colors"
-                        />
-                    </div>
-                </div>
-            )}
         </header>
     );
 };
@@ -298,6 +295,35 @@ function App() {
     const [showOffersOnly, setShowOffersOnly] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
 
+    const [isHeaderVisible, setIsHeaderVisible] = useState(true);
+    const lastScrollY = useRef(0);
+    const searchInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        const handleScroll = () => {
+            const currentScrollY = window.scrollY;
+            if (isSearchOpen) {
+                setIsHeaderVisible(true);
+                return;
+            }
+            if (currentScrollY > 200 && currentScrollY > lastScrollY.current) {
+                setIsHeaderVisible(false); // Hide on scroll down
+            } else if (currentScrollY < lastScrollY.current) {
+                setIsHeaderVisible(true); // Show on scroll up
+            }
+            lastScrollY.current = currentScrollY;
+        };
+
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, [isSearchOpen]);
+    
+    useEffect(() => {
+        if (isSearchOpen) {
+            setTimeout(() => searchInputRef.current?.focus(), 100);
+        }
+    }, [isSearchOpen]);
+
     const handleSearch = (query: string) => {
         setSearchQuery(query);
         if (query) {
@@ -326,13 +352,37 @@ function App() {
         return (
             <div className="flex flex-col min-h-screen bg-base-100 text-text-base dark:bg-gray-900 dark:text-gray-200 transition-colors duration-300">
                 <Header 
+                    isVisible={isHeaderVisible}
                     onCartClick={() => setIsCartOpen(true)} 
                     onMenuClick={() => setIsMenuOpen(true)}
                     onSearchToggle={() => setIsSearchOpen(!isSearchOpen)}
                     isSearchOpen={isSearchOpen}
-                    searchQuery={searchQuery}
-                    setSearchQuery={handleSearch}
                 />
+                
+                <button 
+                    onClick={() => setIsSearchOpen(true)} 
+                    aria-label="بحث"
+                    className={`fixed top-4 right-4 z-50 p-3 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md rounded-full shadow-lg transition-all duration-300 transform-gpu ${!isHeaderVisible && !isSearchOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-20 pointer-events-none'}`}
+                >
+                     <SearchIcon className="h-6 w-6 text-text-muted"/>
+                </button>
+
+                {isSearchOpen && (
+                    <div className="fixed top-0 left-0 right-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm p-4 shadow-lg border-b dark:border-slate-700 animate-fade-in-down z-[60]">
+                        <div className="relative container mx-auto">
+                            <SearchIcon className="w-5 h-5 text-gray-400 absolute top-1/2 right-4 transform -translate-y-1/2 pointer-events-none" />
+                            <input
+                                ref={searchInputRef}
+                                type="text"
+                                placeholder="ابحث عن منتج..."
+                                value={searchQuery}
+                                onChange={(e) => handleSearch(e.target.value)}
+                                className="w-full bg-gray-100 dark:bg-gray-700 border-2 border-transparent focus:border-primary focus:ring-0 rounded-lg py-3 pr-11 pl-4 transition-colors"
+                            />
+                        </div>
+                    </div>
+                )}
+                
                 <SideMenu 
                     isOpen={isMenuOpen} 
                     onClose={() => setIsMenuOpen(false)} 

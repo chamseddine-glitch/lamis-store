@@ -76,6 +76,10 @@ const storeReducer = (state: AppState, action: Action): AppState => {
         managedCategories: firestoreSettings.managedCategories || INITIAL_SETTINGS.managedCategories,
         productCardStyle: firestoreSettings.productCardStyle || INITIAL_SETTINGS.productCardStyle,
         productGridLayout: firestoreSettings.productGridLayout || INITIAL_SETTINGS.productGridLayout,
+        storeNameStyle: {
+          ...INITIAL_SETTINGS.storeNameStyle,
+          ...(firestoreSettings.storeNameStyle || {}),
+        },
       };
       
       const categories = ['الكل', ...(settings.managedCategories || [])];

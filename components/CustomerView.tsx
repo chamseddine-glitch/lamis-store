@@ -494,22 +494,18 @@ export const CustomerView: React.FC<{ activeCategory: string; showOffersOnly: bo
     const lastScrollY = useRef(0);
 
     useEffect(() => {
-        // This improved scroll handler hides the filter bar when scrolling down,
-        // and only shows it again when the user scrolls back to the very top of the page.
-        // This provides more screen real estate, especially on mobile.
         const handleScroll = () => {
             const currentScrollY = window.scrollY;
             const scrollDelta = currentScrollY - lastScrollY.current;
-            const topThreshold = 100;
 
-            // Show the bar only when at the top.
-            if (currentScrollY < topThreshold) {
+            // Always show if near the top
+            if (currentScrollY < 150) {
                 setIsFilterBarVisible(true);
-            } else if (scrollDelta > 10) { // Hide when scrolling down with some momentum.
+            } else if (scrollDelta > 10) { // Hide when scrolling down with some momentum
                 setIsFilterBarVisible(false);
+            } else if (scrollDelta < -10) { // Show when scrolling up with some momentum
+                setIsFilterBarVisible(true);
             }
-            // On scroll up (when delta < -10), we do nothing, so the bar remains hidden
-            // until the user reaches the topThreshold.
 
             lastScrollY.current = Math.max(0, currentScrollY);
         };
@@ -582,7 +578,7 @@ export const CustomerView: React.FC<{ activeCategory: string; showOffersOnly: bo
         <div className="bg-base-100 dark:bg-gray-900 min-h-screen">
             <main className="container mx-auto px-4 py-8">
                 
-                <div id="products-section" className={`mb-8 animate-fade-in-up sticky top-[70px] z-30 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm p-4 rounded-xl shadow-md transition-transform duration-300 ease-in-out ${isFilterBarVisible ? 'translate-y-0' : '-translate-y-[150%]'}`}>
+                <div id="products-section" className={`mb-8 animate-fade-in-up sticky top-[125px] md:top-[85px] z-30 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm p-4 rounded-xl shadow-md transition-transform duration-300 ease-in-out ${isFilterBarVisible ? 'translate-y-0' : '-translate-y-[150%]'}`}>
                     <h2 className="text-2xl font-bold text-center mb-4 text-text-base dark:text-slate-200">
                         {searchQuery.trim() ? `نتائج البحث عن: "${searchQuery}"` : showOffersOnly ? 'أهم العروض' : 'تصفح منتجاتنا'}
                     </h2>

@@ -96,6 +96,11 @@ export interface StoreSettings {
   managedCategories?: string[];
   productCardStyle?: 'default' | 'minimal' | 'overlay';
   productGridLayout?: 'default' | 'condensed' | 'large';
+  storeNameStyle?: {
+    style: 'default' | 'gradient';
+    gradientFrom?: string;
+    gradientTo?: string;
+  };
 }
 
 export interface ToastMessage {
