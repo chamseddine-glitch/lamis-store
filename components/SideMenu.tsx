@@ -1,6 +1,6 @@
 
 
-import React, { useContext } from 'react';
+import React, { useContext, useMemo } from 'react';
 import { StoreContext } from '../context/StoreContext';
 import { XMarkIcon, WhatsAppIcon, TagIcon, SunIcon, MoonIcon, SearchIcon } from './icons';
 
@@ -36,7 +36,8 @@ const ThemeToggleSideMenu = () => {
 
 export const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose, onSelectCategory, onShowOffers, activeCategory, showOffersOnly, searchQuery, setSearchQuery }) => {
   const { state } = useContext(StoreContext);
-  const { settings, categories } = state;
+  const { settings, categories, products } = state;
+  const hasOffers = useMemo(() => products.some(p => p.isOnSale), [products]);
 
   return (
     <>
@@ -71,17 +72,19 @@ export const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose, onSelectCat
         </div>
 
         <nav className="p-4 space-y-2 overflow-y-auto flex-grow">
-          <button
-            onClick={onShowOffers}
-            className={`w-full text-right flex items-center gap-3 px-4 py-3 rounded-lg font-semibold transition-colors ${
-              showOffersOnly ? 'bg-secondary text-white' : 'hover:bg-gray-100 dark:hover:bg-gray-700'
-            }`}
-          >
-            <TagIcon className="w-6 h-6" />
-            <span>أهم العروض</span>
-          </button>
+          {hasOffers && (
+            <button
+                onClick={onShowOffers}
+                className={`w-full text-right flex items-center gap-3 px-4 py-3 rounded-lg font-semibold transition-colors ${
+                showOffersOnly ? 'bg-secondary text-white' : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`}
+            >
+                <TagIcon className="w-6 h-6" />
+                <span>تخفيضات</span>
+            </button>
+          )}
           
-          <div className="pt-4">
+          <div className={hasOffers ? "pt-4" : ""}>
               <h3 className="px-4 text-sm font-semibold text-gray-500 uppercase tracking-wider">التصنيفات</h3>
               <div className="mt-2 space-y-1">
                 {categories.map(category => (

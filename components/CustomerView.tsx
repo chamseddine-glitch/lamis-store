@@ -1,9 +1,9 @@
-import React, { useState, useContext, useMemo, useEffect } from 'react';
+import React, { useState, useContext, useMemo, useEffect, useRef } from 'react';
 import { StoreContext } from '../context/StoreContext';
 import type { Product, CartItem, Order } from '../types';
 import { OrderStatus } from '../types';
 import { ALGERIA_DATA } from '../constants';
-import { ShoppingCartIcon, XMarkIcon, ArchiveBoxIcon, CheckCircleIcon, StarIcon, ShareIcon, EyeIcon } from './icons';
+import { ShoppingCartIcon, XMarkIcon, ArchiveBoxIcon, CheckCircleIcon, StarIcon, ShareIcon, EyeIcon, TagIcon } from './icons';
 import { db } from '../firebase';
 import { collection, addDoc, serverTimestamp, doc, runTransaction } from 'firebase/firestore';
 
@@ -486,9 +486,36 @@ const OrderModal: React.FC<{ product: Product | null; onClose: () => void; }> = 
     );
 };
 
-export const CustomerView: React.FC<{ activeCategory: string; showOffersOnly: boolean; setActiveCategory: (cat: string) => void; searchQuery: string; }> = ({ activeCategory, showOffersOnly, setActiveCategory, searchQuery }) => {
+export const CustomerView: React.FC<{ activeCategory: string; showOffersOnly: boolean; setActiveCategory: (cat: string) => void; searchQuery: string; onShowOffers: () => void; }> = ({ activeCategory, showOffersOnly, setActiveCategory, searchQuery, onShowOffers }) => {
     const { state } = useContext(StoreContext);
     const [orderingProduct, setOrderingProduct] = useState<Product | null>(null);
+    const hasOffers = useMemo(() => state.products.some(p => p.isOnSale), [state.products]);
+    const [isFilterBarVisible, setIsFilterBarVisible] = useState(true);
+    const lastScrollY = useRef(0);
+
+    useEffect(() => {
+        const handleScroll = () => {
+            const currentScrollY = window.scrollY;
+            const headerHeight = 70; // Approx height of the main header
+
+            if (currentScrollY < headerHeight) {
+                setIsFilterBarVisible(true);
+                lastScrollY.current = currentScrollY;
+                return;
+            }
+
+            if (currentScrollY > lastScrollY.current) {
+                setIsFilterBarVisible(false); // Scrolling down
+            } else {
+                setIsFilterBarVisible(true); // Scrolling up
+            }
+
+            lastScrollY.current = currentScrollY;
+        };
+
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
 
     useEffect(() => {
         if (typeof window === 'undefined' || state.products.length === 0) {
@@ -541,11 +568,20 @@ export const CustomerView: React.FC<{ activeCategory: string; showOffersOnly: bo
         <div className="bg-base-100 dark:bg-gray-900 min-h-screen">
             <main className="container mx-auto px-4 py-8">
                 
-                <div id="products-section" className="mb-8 animate-fade-in-up sticky top-[70px] z-30 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm p-4 rounded-xl shadow-md">
+                <div id="products-section" className={`mb-8 animate-fade-in-up sticky top-[70px] z-30 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm p-4 rounded-xl shadow-md transition-transform duration-300 ease-in-out ${isFilterBarVisible ? 'translate-y-0' : '-translate-y-[150%]'}`}>
                     <h2 className="text-2xl font-bold text-center mb-4 text-text-base dark:text-slate-200">
                         {searchQuery.trim() ? `نتائج البحث عن: "${searchQuery}"` : showOffersOnly ? 'أهم العروض' : 'تصفح منتجاتنا'}
                     </h2>
                     <div className="flex justify-center flex-wrap gap-2">
+                        {hasOffers && (
+                            <button 
+                                onClick={onShowOffers}
+                                className={`px-4 py-2 rounded-full text-sm font-semibold transition-all duration-200 active:scale-95 transform flex items-center gap-2 ${showOffersOnly ? 'bg-secondary text-white shadow-md' : 'bg-white text-text-muted hover:bg-gray-100 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'}`}
+                            >
+                                <TagIcon className="w-5 h-5"/>
+                                <span>تخفيضات</span>
+                            </button>
+                        )}
                         {categories.map(category => (
                             <button 
                                 key={category}

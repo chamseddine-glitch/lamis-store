@@ -145,7 +145,7 @@ const FloatingWhatsApp = () => {
 
 const ThemeInjector = () => {
   const { state } = useContext(StoreContext);
-  const { settings, themeMode } = state;
+  const { settings, themeMode, dbStatus } = state;
 
   useEffect(() => {
     const root = document.documentElement;
@@ -164,12 +164,12 @@ const ThemeInjector = () => {
     root.style.setProperty('--color-text-muted', settings.theme.textMuted);
     
     // Dynamically update page title and favicon
-    document.title = settings.storeName;
+    document.title = dbStatus === 'loading' ? 'جاري التحميل...' : settings.storeName;
     const favicon = document.getElementById('favicon') as HTMLLinkElement | null;
     if (favicon && settings.logo) {
       favicon.href = settings.logo;
     }
-  }, [settings, themeMode]);
+  }, [settings, themeMode, dbStatus]);
 
   return null;
 };
@@ -343,6 +343,11 @@ function App() {
                         setActiveCategory={cat => {
                             setActiveCategory(cat);
                             setShowOffersOnly(false);
+                            setSearchQuery('');
+                        }}
+                        onShowOffers={() => {
+                            setShowOffersOnly(true);
+                            setActiveCategory('الكل');
                             setSearchQuery('');
                         }}
                         searchQuery={searchQuery}

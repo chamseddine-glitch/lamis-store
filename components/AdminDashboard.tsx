@@ -9,8 +9,9 @@ import {
     SunIcon, MoonIcon, PaintBrushIcon
 } from './icons';
 import { db } from '../firebase';
-import { collection, doc, addDoc, setDoc, deleteDoc, updateDoc } from 'firebase/firestore';
+import { collection, doc, addDoc, setDoc, deleteDoc, updateDoc, writeBatch } from 'firebase/firestore';
 import { ALGERIA_DATA, ALL_DELIVERY_COMPANIES } from '../constants';
+import { StoreCustomization } from './StoreCustomization';
 
 // Helper Components
 const StatCard: React.FC<{ title: string; value: string | number; icon: React.ReactNode }> = ({ title, value, icon }) => (
@@ -608,15 +609,37 @@ const ProductsAndCategoriesManagement: React.FC<{ products: Product[] }> = ({ pr
     
     const confirmDeleteCategory = async () => {
         if (!categoryToDelete) return;
+
         const currentCategories = Array.isArray(state.settings.managedCategories) ? state.settings.managedCategories : [];
-        const newCategories = currentCategories.filter(c => c !== categoryToDelete);
+        const productsToUpdate = products.filter(p => p.category === categoryToDelete);
+
+        // Remove the deleted category
+        let newCategories = currentCategories.filter(c => c !== categoryToDelete);
+        
+        // Add 'غير مصنف' if there are products being updated and it's not already there
+        if (productsToUpdate.length > 0 && !newCategories.includes("غير مصنف")) {
+            newCategories.push("غير مصنف");
+        }
+        
         setIsSavingCategories(true);
         try {
-            await setDoc(doc(db, "store", "settings"), { managedCategories: newCategories }, { merge: true });
+            const batch = writeBatch(db);
+
+            // Update products with the deleted category
+            productsToUpdate.forEach(product => {
+                const productRef = doc(db, "products", product.id);
+                batch.update(productRef, { category: "غير مصنف" });
+            });
+
+            // Update the settings with the new categories list
+            const settingsRef = doc(db, "store", "settings");
+            batch.update(settingsRef, { managedCategories: newCategories });
+
+            await batch.commit();
             setCategoryToDelete(null);
         } catch (error) {
-            console.error("Error deleting category:", error);
-            alert("حدث خطأ أثناء حذف التصنيف.");
+            console.error("Error deleting category and updating products:", error);
+            alert("حدث خطأ أثناء حذف التصنيف وتحديث المنتجات.");
         } finally {
             setIsSavingCategories(false);
         }
@@ -714,7 +737,7 @@ const ProductsAndCategoriesManagement: React.FC<{ products: Product[] }> = ({ pr
                 <p>هل أنت متأكد من حذف هذا التصنيف؟</p>
                 {categoryToDelete && isCategoryInUse(categoryToDelete) && (
                     <p className="mt-2 text-sm text-yellow-700 bg-yellow-100 dark:text-yellow-200 dark:bg-yellow-900/50 p-2 rounded">
-                        <strong>تنبيه:</strong> هذا التصنيف مستخدم في بعض المنتجات. حذف التصنيف لن يغير تصنيف تلك المنتجات.
+                        <strong>تنبيه:</strong> سيتم تغيير تصنيف المنتجات التابعة لهذا التصنيف إلى "غير مصنف".
                     </p>
                 )}
             </ConfirmationModal>
@@ -850,7 +873,7 @@ const DeliverySettingsManagement: React.FC<{ settings: StoreSettings; onSave: (n
 {/* FIX: Add the missing AdminDashboard component and export it */}
 export const AdminDashboard: React.FC = () => {
     const { state, dispatch } = useContext(StoreContext);
-    const [activeTab, setActiveTab] = useState<'overview' | 'orders' | 'products' | 'settings'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'orders' | 'products' | 'delivery' | 'customize'>('overview');
     const { orders, products, settings } = state;
 
     const handleSaveSettings = async (newSettings: StoreSettings) => {
@@ -870,7 +893,8 @@ export const AdminDashboard: React.FC = () => {
         { id: 'overview', label: 'نظرة عامة', icon: <ChartPieIcon className="w-5 h-5"/>, component: <DashboardOverview orders={orders} products={products} /> },
         { id: 'orders', label: 'الطلبات', icon: <ClipboardDocumentListIcon className="w-5 h-5"/>, component: <OrdersManagement orders={orders} /> },
         { id: 'products', label: 'المنتجات والتصنيفات', icon: <TagIcon className="w-5 h-5"/>, component: <ProductsAndCategoriesManagement products={products} /> },
-        { id: 'settings', label: 'الإعدادات', icon: <Cog6ToothIcon className="w-5 h-5"/>, component: <DeliverySettingsManagement settings={settings} onSave={handleSaveSettings} /> },
+        { id: 'delivery', label: 'اعدادات التوصيل', icon: <TruckIcon className="w-5 h-5"/>, component: <DeliverySettingsManagement settings={settings} onSave={handleSaveSettings} /> },
+        { id: 'customize', label: 'تخصيص المتجر', icon: <PaintBrushIcon className="w-5 h-5"/>, component: <StoreCustomization settings={settings} onSave={handleSaveSettings} /> },
     ];
 
     return (
