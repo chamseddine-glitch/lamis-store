@@ -1,7 +1,8 @@
 
+
 import React, { useContext } from 'react';
 import { StoreContext } from '../context/StoreContext';
-import { XMarkIcon, WhatsAppIcon, TagIcon } from './icons';
+import { XMarkIcon, WhatsAppIcon, TagIcon, SunIcon, MoonIcon, SearchIcon } from './icons';
 
 interface SideMenuProps {
   isOpen: boolean;
@@ -10,9 +11,30 @@ interface SideMenuProps {
   onShowOffers: () => void;
   activeCategory: string;
   showOffersOnly: boolean;
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
 }
 
-export const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose, onSelectCategory, onShowOffers, activeCategory, showOffersOnly }) => {
+const ThemeToggleSideMenu = () => {
+    const { state, dispatch } = useContext(StoreContext);
+    const { themeMode } = state;
+
+    const toggleTheme = () => {
+        dispatch({ type: 'TOGGLE_THEME_MODE' });
+    };
+
+    return (
+         <button
+            onClick={toggleTheme}
+            className={`w-full text-right flex items-center gap-3 px-4 py-3 rounded-lg font-semibold transition-colors hover:bg-gray-100 dark:hover:bg-gray-700`}
+          >
+            {themeMode === 'light' ? <MoonIcon className="w-6 h-6" /> : <SunIcon className="w-6 h-6" />}
+            <span>{themeMode === 'light' ? 'الوضع الليلي' : 'الوضع النهاري'}</span>
+          </button>
+    );
+};
+
+export const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose, onSelectCategory, onShowOffers, activeCategory, showOffersOnly, searchQuery, setSearchQuery }) => {
   const { state } = useContext(StoreContext);
   const { settings, categories } = state;
 
@@ -25,19 +47,34 @@ export const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose, onSelectCat
       />
       {/* Menu */}
       <div
-        className={`fixed top-0 right-0 h-full w-72 bg-white shadow-lg z-50 transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
+        className={`fixed top-0 right-0 h-full w-72 bg-white dark:bg-gray-800 shadow-lg z-50 flex flex-col transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
       >
-        <div className="p-4 flex justify-between items-center border-b">
+        <div className="p-4 flex justify-between items-center border-b dark:border-gray-700">
           <h2 className="text-xl font-bold text-primary">{settings.storeName}</h2>
           <button onClick={onClose} className="p-1">
             <XMarkIcon className="w-6 h-6 text-gray-500" />
           </button>
         </div>
-        <nav className="p-4 space-y-2">
+        
+        {/* Search Bar */}
+        <div className="p-4 border-b dark:border-gray-700">
+            <div className="relative">
+                <SearchIcon className="w-5 h-5 text-gray-400 absolute top-1/2 right-3 transform -translate-y-1/2 pointer-events-none" />
+                <input
+                    type="text"
+                    placeholder="ابحث عن منتج..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full bg-gray-100 dark:bg-gray-700 border-2 border-transparent focus:border-primary focus:ring-0 rounded-lg py-2 pr-10 pl-4 transition-colors"
+                />
+            </div>
+        </div>
+
+        <nav className="p-4 space-y-2 overflow-y-auto flex-grow">
           <button
             onClick={onShowOffers}
             className={`w-full text-right flex items-center gap-3 px-4 py-3 rounded-lg font-semibold transition-colors ${
-              showOffersOnly ? 'bg-secondary text-white' : 'hover:bg-gray-100'
+              showOffersOnly ? 'bg-secondary text-white' : 'hover:bg-gray-100 dark:hover:bg-gray-700'
             }`}
           >
             <TagIcon className="w-6 h-6" />
@@ -52,7 +89,7 @@ export const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose, onSelectCat
                     key={category}
                     onClick={() => onSelectCategory(category)}
                     className={`w-full text-right flex items-center gap-3 px-4 py-2 rounded-lg font-medium transition-colors ${
-                      activeCategory === category && !showOffersOnly ? 'bg-primary/10 text-primary' : 'hover:bg-gray-100'
+                      activeCategory === category && !showOffersOnly ? 'bg-primary/10 text-primary' : 'hover:bg-gray-100 dark:hover:bg-gray-700'
                     }`}
                   >
                     <span>{category}</span>
@@ -60,20 +97,20 @@ export const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose, onSelectCat
                 ))}
               </div>
           </div>
-
-          <div className="border-t pt-4 mt-4 space-y-2">
-             <a
-                href={settings.contactInfo.whatsapp}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full text-right flex items-center gap-3 px-4 py-3 rounded-lg font-semibold transition-colors hover:bg-gray-100"
-            >
-                <WhatsAppIcon className="w-6 h-6 text-green-500" />
-                <span>الدعم والاتصال</span>
-            </a>
-          </div>
-
         </nav>
+        
+        <div className="p-4 border-t dark:border-gray-700 mt-auto space-y-2">
+            <ThemeToggleSideMenu />
+            <a
+            href={settings.contactInfo.whatsapp}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full text-right flex items-center gap-3 px-4 py-3 rounded-lg font-semibold transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
+            >
+            <WhatsAppIcon className="w-6 h-6 text-green-500" />
+            <span>الدعم والاتصال</span>
+            </a>
+        </div>
       </div>
     </>
   );

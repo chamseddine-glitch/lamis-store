@@ -1,15 +1,16 @@
 
-import React, { useContext, useEffect, useState } from 'react';
+
+import React, { useContext, useEffect, useState, useRef } from 'react';
 import { StoreContext } from './context/StoreContext';
 import { ViewMode } from './types';
 import { AdminDashboard } from './components/AdminDashboard';
 import { CustomerView } from './components/CustomerView';
 import { AdminAuth } from './components/AdminAuth';
-import { ShoppingCartIcon, UserShieldIcon, UserCircleIcon, WhatsAppIcon, LogoutIcon, ExclamationTriangleIcon, HamburgerIcon } from './components/icons';
+import { ShoppingCartIcon, UserShieldIcon, UserCircleIcon, WhatsAppIcon, LogoutIcon, ExclamationTriangleIcon, HamburgerIcon, SearchIcon, XMarkIcon } from './components/icons';
 import { CartModal } from './components/CartModal';
 import { SideMenu } from './components/SideMenu';
 
-const Header = ({ onCartClick, onMenuClick }: { onCartClick: () => void; onMenuClick: () => void; }) => {
+const Header = ({ onCartClick, onMenuClick, onSearchToggle, isSearchOpen, searchQuery, setSearchQuery }: { onCartClick: () => void; onMenuClick: () => void; onSearchToggle: () => void; isSearchOpen: boolean; searchQuery: string; setSearchQuery: (query: string) => void; }) => {
     const { state, dispatch } = useContext(StoreContext);
     const { settings, viewMode, cart, isLoggedIn } = state;
 
@@ -20,42 +21,73 @@ const Header = ({ onCartClick, onMenuClick }: { onCartClick: () => void; onMenuC
             dispatch({ type: 'LOGOUT' });
         }
     };
+    
+    const searchInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        if (isSearchOpen) {
+            // A short delay to allow the element to be rendered before focusing
+            setTimeout(() => searchInputRef.current?.focus(), 100);
+        }
+    }, [isSearchOpen]);
 
     return (
-        <header className="bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-40">
+        <header className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md shadow-sm sticky top-0 z-40">
             <div className="container mx-auto px-4 py-3 flex justify-between items-center">
                 <div className="flex items-center gap-4">
-                     <button onClick={onMenuClick} aria-label="فتح القائمة">
-                        <HamburgerIcon className="h-7 w-7 text-text-muted hover:text-text-base transition-colors"/>
+                     <button onClick={onMenuClick} aria-label="فتح القائمة" className="group">
+                        <HamburgerIcon className="h-7 w-7 text-text-muted group-hover:text-primary transition-all duration-200 transform group-hover:scale-110"/>
                     </button>
                     <img src={settings.logo} alt="Store Logo" className="h-10 w-auto"/>
                     <h1 className="text-xl md:text-2xl font-bold text-primary">{settings.storeName}</h1>
                 </div>
-                <div className="flex items-center gap-4">
-                    <button onClick={onCartClick} className="relative" aria-label={`عربة التسوق، ${cart.length} منتجات`}>
-                        <ShoppingCartIcon className="h-7 w-7 text-text-muted hover:text-text-base transition-colors"/>
+                <div className="flex items-center gap-2">
+                    <button onClick={onSearchToggle} className="group p-2" aria-label="بحث">
+                        {isSearchOpen ? (
+                             <XMarkIcon className="h-7 w-7 text-primary"/>
+                        ) : (
+                             <SearchIcon className="h-7 w-7 text-text-muted group-hover:text-primary transition-all duration-200 transform group-hover:scale-110"/>
+                        )}
+                    </button>
+                    <button onClick={onCartClick} className="relative group p-2" aria-label={`عربة التسوق، ${cart.length} منتجات`}>
+                        <ShoppingCartIcon className="h-7 w-7 text-text-muted group-hover:text-primary transition-all duration-200 transform group-hover:scale-110"/>
                         {cart.length > 0 && (
-                             <span key={cart.length} className="absolute -top-2 -right-2 bg-secondary text-white text-xs rounded-full h-5 w-5 flex items-center justify-center animate-pop">{cart.length}</span>
+                             <span key={cart.length} className="absolute -top-1 -right-1 bg-secondary text-white text-xs rounded-full h-5 w-5 flex items-center justify-center animate-pop group-hover:scale-110 transition-transform">{cart.length}</span>
                         )}
                     </button>
                     
                     {/* Admin Actions */}
                     { isLoggedIn && viewMode === ViewMode.ADMIN ? (
                         <>
-                            <button onClick={goToCustomer} title="عرض كزبون" aria-label="عرض كزبون">
-                                <UserCircleIcon className="h-7 w-7 text-text-muted hover:text-text-base transition-colors"/>
+                            <button onClick={goToCustomer} title="عرض كزبون" aria-label="عرض كزبون" className="group p-2">
+                                <UserCircleIcon className="h-7 w-7 text-text-muted group-hover:text-primary transition-all duration-200 transform group-hover:scale-110"/>
                             </button>
-                            <button onClick={logout} title="تسجيل الخروج" aria-label="تسجيل الخروج">
-                                <LogoutIcon className="h-7 w-7 text-red-500 hover:text-red-700 transition-colors"/>
+                            <button onClick={logout} title="تسجيل الخروج" aria-label="تسجيل الخروج" className="group p-2">
+                                <LogoutIcon className="h-7 w-7 text-red-500 group-hover:text-red-600 transition-all duration-200 transform group-hover:scale-110"/>
                             </button>
                         </>
                     ) : isLoggedIn && viewMode === ViewMode.CUSTOMER ? (
-                        <button onClick={goToAdmin} title="لوحة التحكم" aria-label="لوحة التحكم">
-                            <UserShieldIcon className="h-7 w-7 text-text-muted hover:text-text-base transition-colors"/>
+                        <button onClick={goToAdmin} title="لوحة التحكم" aria-label="لوحة التحكم" className="group p-2">
+                            <UserShieldIcon className="h-7 w-7 text-text-muted group-hover:text-primary transition-all duration-200 transform group-hover:scale-110"/>
                         </button>
                     ) : null }
                 </div>
             </div>
+            {isSearchOpen && (
+                <div className="absolute top-full left-0 right-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm p-4 shadow-lg border-t dark:border-slate-700 animate-fade-in-down">
+                    <div className="relative container mx-auto">
+                        <SearchIcon className="w-5 h-5 text-gray-400 absolute top-1/2 right-4 transform -translate-y-1/2 pointer-events-none" />
+                        <input
+                            ref={searchInputRef}
+                            type="text"
+                            placeholder="ابحث عن منتج..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full bg-gray-100 dark:bg-gray-700 border-2 border-transparent focus:border-primary focus:ring-0 rounded-lg py-3 pr-11 pl-4 transition-colors"
+                        />
+                    </div>
+                </div>
+            )}
         </header>
     );
 };
@@ -65,7 +97,7 @@ const Footer = () => {
     const { settings } = state;
 
     return (
-        <footer className="bg-gray-800 text-white mt-auto">
+        <footer className="bg-gray-800 text-white dark:bg-black/80 dark:text-gray-300">
             <div className="container mx-auto px-4 py-8">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-right">
                     <div>
@@ -97,7 +129,7 @@ const Footer = () => {
 const FloatingWhatsApp = () => {
     const { state } = useContext(StoreContext);
     return (
-        <a href={state.settings.contactInfo.whatsapp} target="_blank" rel="noopener noreferrer" aria-label="تواصل معنا عبر واتساب" className="fixed bottom-6 left-6 bg-green-500 text-white p-4 rounded-full shadow-lg hover:bg-green-600 transition-all z-50 animate-subtle-bounce hover:animate-none">
+        <a href={state.settings.contactInfo.whatsapp} target="_blank" rel="noopener noreferrer" aria-label="تواصل معنا عبر واتساب" className="fixed bottom-6 left-6 bg-green-500 text-white p-4 rounded-full shadow-lg hover:bg-green-600 transition-all z-50 animate-subtle-bounce hover:animate-none transform hover:scale-110">
             <WhatsAppIcon className="w-8 h-8"/>
         </a>
     )
@@ -105,10 +137,17 @@ const FloatingWhatsApp = () => {
 
 const ThemeInjector = () => {
   const { state } = useContext(StoreContext);
-  const { settings } = state;
+  const { settings, themeMode } = state;
 
   useEffect(() => {
     const root = document.documentElement;
+
+    if (themeMode === 'dark') {
+        root.classList.add('dark');
+    } else {
+        root.classList.remove('dark');
+    }
+
     root.style.setProperty('--color-primary', settings.theme.primary);
     root.style.setProperty('--color-secondary', settings.theme.secondary);
     root.style.setProperty('--color-accent', settings.theme.accent);
@@ -116,16 +155,13 @@ const ThemeInjector = () => {
     root.style.setProperty('--color-text', settings.theme.text);
     root.style.setProperty('--color-text-muted', settings.theme.textMuted);
     
-    document.body.style.backgroundColor = settings.theme.background;
-    document.body.style.color = settings.theme.text;
-
     // Dynamically update page title and favicon
     document.title = settings.storeName;
     const favicon = document.getElementById('favicon') as HTMLLinkElement | null;
     if (favicon && settings.logo) {
       favicon.href = settings.logo;
     }
-  }, [settings]);
+  }, [settings, themeMode]);
 
   return null;
 };
@@ -135,17 +171,17 @@ const MaintenanceScreen = () => {
     const whatsappLink = state.settings?.contactInfo?.whatsapp;
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4 text-center" style={{ backgroundColor: 'var(--color-background)', color: 'var(--color-text)' }}>
-            <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full border border-red-200">
+        <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900 p-4 text-center">
+            <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl max-w-md w-full border border-red-200 dark:border-red-900">
                 <ExclamationTriangleIcon className="w-20 h-20 mx-auto text-red-500 mb-4" />
                 <h1 className="text-3xl font-bold text-red-600 mb-2">عذراً، حدث خطأ</h1>
-                <p className="text-lg text-gray-700 mb-6">
+                <p className="text-lg text-gray-700 dark:text-gray-300 mb-6">
                     فشل الاتصال بالخادم. قد يكون الموقع تحت الصيانة أو يواجه مشكلة تقنية.
                 </p>
-                <p className="text-gray-600">نحن نعمل على إصلاح المشكلة. يرجى المحاولة مرة أخرى لاحقاً.</p>
+                <p className="text-gray-600 dark:text-gray-400">نحن نعمل على إصلاح المشكلة. يرجى المحاولة مرة أخرى لاحقاً.</p>
                 {whatsappLink && (
                     <>
-                        <p className="text-gray-600 mt-6">للاستفسارات العاجلة، يمكنك التواصل معنا مباشرة:</p>
+                        <p className="text-gray-600 dark:text-gray-400 mt-6">للاستفسارات العاجلة، يمكنك التواصل معنا مباشرة:</p>
                         <a 
                             href={whatsappLink} 
                             target="_blank" 
@@ -163,7 +199,7 @@ const MaintenanceScreen = () => {
 };
 
 const LoadingScreen = () => (
-    <div className="flex items-center justify-center min-h-screen bg-base-100">
+    <div className="flex items-center justify-center min-h-screen bg-base-100 dark:bg-gray-900">
         <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-primary"></div>
     </div>
 );
@@ -173,9 +209,19 @@ function App() {
     const { state } = useContext(StoreContext);
     const [isCartOpen, setIsCartOpen] = useState(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isSearchOpen, setIsSearchOpen] = useState(false);
     
     const [activeCategory, setActiveCategory] = useState('الكل');
     const [showOffersOnly, setShowOffersOnly] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+
+    const handleSearch = (query: string) => {
+        setSearchQuery(query);
+        if (query) {
+            setShowOffersOnly(false);
+            setActiveCategory('الكل');
+        }
+    };
     
     if (state.dbStatus === 'loading') {
         return <LoadingScreen />;
@@ -199,24 +245,35 @@ function App() {
     }
 
     return (
-        <div className="flex flex-col min-h-screen bg-base-100 text-text-base">
+        <div className="flex flex-col min-h-screen bg-base-100 text-text-base dark:bg-gray-900 dark:text-gray-200 transition-colors duration-300">
             <ThemeInjector />
-            <Header onCartClick={() => setIsCartOpen(true)} onMenuClick={() => setIsMenuOpen(true)} />
+            <Header 
+                onCartClick={() => setIsCartOpen(true)} 
+                onMenuClick={() => setIsMenuOpen(true)}
+                onSearchToggle={() => setIsSearchOpen(!isSearchOpen)}
+                isSearchOpen={isSearchOpen}
+                searchQuery={searchQuery}
+                setSearchQuery={handleSearch}
+            />
             <SideMenu 
                 isOpen={isMenuOpen} 
                 onClose={() => setIsMenuOpen(false)} 
                 onSelectCategory={cat => {
                     setActiveCategory(cat);
                     setShowOffersOnly(false);
+                    setSearchQuery('');
                     setIsMenuOpen(false);
                 }}
                 onShowOffers={() => {
                     setShowOffersOnly(true);
                     setActiveCategory('الكل');
+                    setSearchQuery('');
                     setIsMenuOpen(false);
                 }}
                 activeCategory={activeCategory}
                 showOffersOnly={showOffersOnly}
+                searchQuery={searchQuery}
+                setSearchQuery={handleSearch}
             />
             <main className="flex-grow">
                 <CustomerView 
@@ -225,7 +282,9 @@ function App() {
                     setActiveCategory={cat => {
                         setActiveCategory(cat);
                         setShowOffersOnly(false);
-                    }} 
+                        setSearchQuery('');
+                    }}
+                    searchQuery={searchQuery}
                 />
             </main>
             <Footer />

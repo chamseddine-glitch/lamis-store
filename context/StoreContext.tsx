@@ -15,6 +15,7 @@ const initialState: AppState = {
   categories: ['الكل', ...(INITIAL_SETTINGS.managedCategories || [])],
   isLoggedIn: false,
   dbStatus: 'loading',
+  themeMode: 'dark', // Default to dark mode
 };
 
 const storeReducer = (state: AppState, action: Action): AppState => {
@@ -25,6 +26,10 @@ const storeReducer = (state: AppState, action: Action): AppState => {
         return { ...state, ...action.payload };
     case 'SET_DB_STATUS':
         return { ...state, dbStatus: action.payload };
+    case 'TOGGLE_THEME_MODE': {
+        const newMode = state.themeMode === 'dark' ? 'light' : 'dark';
+        return { ...state, themeMode: newMode };
+    }
     case 'SET_PRODUCTS': {
         const products = action.payload;
         // Validate cart against the new product list to ensure data consistency
@@ -101,13 +106,17 @@ export const StoreProvider = ({ children }: React.PropsWithChildren) => {
   const [state, dispatch] = useReducer(storeReducer, initialState);
 
   useEffect(() => {
-    // Restore cart from localStorage
+    // Restore cart & theme from localStorage
     try {
         const savedCart = localStorage.getItem('ecomCart');
         if (savedCart) {
             dispatch({ type: 'SET_STATE', payload: { cart: JSON.parse(savedCart) } });
         }
-    } catch (e) { console.error("Failed to load cart from localStorage", e)}
+        const savedTheme = localStorage.getItem('ecomTheme');
+        if (savedTheme === 'light' || savedTheme === 'dark') {
+            dispatch({ type: 'SET_STATE', payload: { themeMode: savedTheme } });
+        }
+    } catch (e) { console.error("Failed to load data from localStorage", e)}
 
     // Check session storage for login state
     if (sessionStorage.getItem('isLoggedIn') === 'true') {
@@ -195,6 +204,15 @@ export const StoreProvider = ({ children }: React.PropsWithChildren) => {
         console.error("Failed to save cart to localStorage", e);
     }
   }, [state.cart]);
+
+  useEffect(() => {
+    // Save theme to localStorage whenever it changes
+    try {
+        localStorage.setItem('ecomTheme', state.themeMode);
+    } catch (e) {
+        console.error("Failed to save theme to localStorage", e);
+    }
+  }, [state.themeMode]);
 
   return (
     <StoreContext.Provider value={{ state, dispatch }}>

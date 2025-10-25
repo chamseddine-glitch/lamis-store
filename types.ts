@@ -1,3 +1,4 @@
+
 export enum ViewMode {
   CUSTOMER = 'CUSTOMER',
   ADMIN = 'ADMIN',
@@ -108,12 +109,14 @@ export interface AppState {
   settings: StoreSettings;
   isLoggedIn: boolean;
   dbStatus: 'loading' | 'connected' | 'error';
+  themeMode: 'light' | 'dark';
 }
 
 export type Action =
   | { type: 'SET_VIEW_MODE'; payload: ViewMode }
   | { type: 'SET_STATE'; payload: Partial<AppState> }
   | { type: 'SET_DB_STATUS'; payload: 'loading' | 'connected' | 'error' }
+  | { type: 'TOGGLE_THEME_MODE' }
   | { type: 'SET_PRODUCTS'; payload: Product[] }
   | { type: 'SET_ORDERS'; payload: Order[] }
   | { type: 'UPDATE_SETTINGS'; payload: StoreSettings }
