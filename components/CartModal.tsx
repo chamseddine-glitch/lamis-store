@@ -30,6 +30,7 @@ export const CartModal: React.FC<{ isOpen: boolean; onClose: () => void; }> = ({
     const [isClosing, setIsClosing] = useState(false);
     const [view, setView] = useState<'cart' | 'checkout' | 'success'>('cart');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [removingItemId, setRemovingItemId] = useState<string | null>(null);
     
     const [customerName, setCustomerName] = useState('');
     const [customerPhone, setCustomerPhone] = useState('');
@@ -83,7 +84,11 @@ export const CartModal: React.FC<{ isOpen: boolean; onClose: () => void; }> = ({
     };
 
     const handleRemoveItem = (cartItemId: string) => {
-        dispatch({ type: 'REMOVE_FROM_CART', payload: cartItemId });
+        setRemovingItemId(cartItemId);
+        setTimeout(() => {
+            dispatch({ type: 'REMOVE_FROM_CART', payload: cartItemId });
+            setRemovingItemId(null);
+        }, 300);
     };
 
     const handleCheckoutSubmit = async (e: React.FormEvent) => {
@@ -138,12 +143,15 @@ export const CartModal: React.FC<{ isOpen: boolean; onClose: () => void; }> = ({
                 <div className="text-center py-10">
                     <ShoppingCartIcon className="w-16 h-16 mx-auto text-gray-400" />
                     <p className="mt-4 text-text-muted dark:text-slate-400">سلة التسوق فارغة.</p>
+                     <button onClick={handleClose} type="button" className="mt-6 bg-primary text-white px-6 py-3 rounded-lg font-bold hover:bg-opacity-90 transition-all active:scale-95">
+                        ابدأ التسوق
+                    </button>
                 </div>
             ) : (
                 <>
                     <div className="space-y-4">
                         {cart.map(item => (
-                            <div key={item.id} className="flex items-start gap-4 p-2 bg-gray-50/50 dark:bg-slate-800/20 rounded-lg animate-fade-in-up">
+                            <div key={item.id} className={`flex items-start gap-4 p-2 bg-gray-50/50 dark:bg-slate-800/20 rounded-lg transition-all duration-300 ${removingItemId === item.id ? 'animate-shrink-fade-out' : 'animate-fade-in-up'}`}>
                                 <img src={item.product.images[0]} alt={item.product.name} className="w-20 h-20 rounded-md object-cover" />
                                 <div className="flex-grow">
                                     <h3 className="font-semibold leading-tight">{item.product.name}</h3>

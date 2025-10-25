@@ -1,5 +1,3 @@
-
-
 import React, { useState, useContext, useEffect } from 'react';
 import { StoreContext } from '../context/StoreContext';
 import type { Order, Product, ProductOption, StoreSettings, DeliveryFee, ThemeColors } from '../types';
@@ -7,7 +5,8 @@ import { OrderStatus, ViewMode } from '../types';
 import { 
     TrashIcon, PencilIcon, ArchiveBoxIcon, ClipboardDocumentListIcon, XMarkIcon, 
     ChartPieIcon, Cog6ToothIcon, TagIcon, ClockIcon, TruckIcon, CheckBadgeIcon, XCircleIcon,
-    UserCircleIcon, LogoutIcon, CheckIcon, PhoneIcon, MapPinIcon, CurrencyDinarIcon, PackageIcon
+    UserCircleIcon, LogoutIcon, CheckIcon, PhoneIcon, MapPinIcon, CurrencyDinarIcon, PackageIcon,
+    SunIcon, MoonIcon, PaintBrushIcon
 } from './icons';
 import { db } from '../firebase';
 import { collection, doc, addDoc, setDoc, deleteDoc, updateDoc } from 'firebase/firestore';
@@ -812,307 +811,114 @@ const DeliverySettingsManagement: React.FC<{ settings: StoreSettings; onSave: (n
                 <div className="p-4 border rounded-lg bg-gray-50 dark:bg-slate-900/50 dark:border-slate-700">
                     <h5 className="font-bold mb-2">تطبيق سعر موحد على كل الولايات</h5>
                     <div className="flex flex-col md:flex-row items-center gap-4">
-                        <input type="number" value={globalOfficeFee} onChange={e => setGlobalOfficeFee(Number(e.target.value))} placeholder="سعر المكتب" className="w-full md:w-auto p-2 border rounded focus:ring-primary focus:border-primary transition flex-1 bg-white text-gray-900 dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600"/>
-                        <input type="number" value={globalHomeFee} onChange={e => setGlobalHomeFee(Number(e.target.value))} placeholder="سعر المنزل" className="w-full md:w-auto p-2 border rounded focus:ring-primary focus:border-primary transition flex-1 bg-white text-gray-900 dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600"/>
-                        <button onClick={handleApplyGlobalFees} className="w-full md:w-auto px-4 py-2 bg-secondary text-white rounded hover:bg-opacity-90 transition-colors active:scale-95">تطبيق على الكل</button>
+                        <input type="number" value={globalOfficeFee} onChange={e => setGlobalOfficeFee(Number(e.target.value))} placeholder="سعر المكتب" className="w-full md:w-auto p-2 border rounded focus:ring-primary focus:border-primary transition flex-1 bg-white text-gray-900 dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600" />
+                        <input type="number" value={globalHomeFee} onChange={e => setGlobalHomeFee(Number(e.target.value))} placeholder="سعر المنزل" className="w-full md:w-auto p-2 border rounded focus:ring-primary focus:border-primary transition flex-1 bg-white text-gray-900 dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600" />
+                        <button onClick={handleApplyGlobalFees} className="px-4 py-2 bg-primary text-white rounded hover:bg-opacity-90 transition-colors active:scale-95 w-full md:w-auto">تطبيق</button>
                     </div>
                 </div>
-
-                <div>
-                     <h5 className="font-bold mb-2">أسعار التوصيل حسب الولاية (0 دج يعني مجاني)</h5>
-                     <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
-                         {(settings.deliveryFees || []).map(({ wilaya, office, home }) => (
-                             <div key={wilaya} className="grid grid-cols-3 items-center gap-4 p-2 bg-gray-50 dark:bg-slate-900/50 rounded">
-                                 <span className="font-semibold">{wilaya}</span>
-                                 <input type="number" value={office} onChange={e => handleFeeChange(wilaya, 'office', Number(e.target.value))} className="w-full p-2 border rounded focus:ring-primary focus:border-primary transition bg-white text-gray-900 dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600" placeholder="سعر المكتب"/>
-                                 <input type="number" value={home} onChange={e => handleFeeChange(wilaya, 'home', Number(e.target.value))} className="w-full p-2 border rounded focus:ring-primary focus:border-primary transition bg-white text-gray-900 dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600" placeholder="سعر المنزل"/>
-                             </div>
-                         ))}
-                     </div>
+                <div className="overflow-x-auto max-h-96">
+                    <table className="w-full text-sm text-right">
+                        <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-slate-700 dark:text-slate-400 sticky top-0">
+                            <tr>
+                                <th className="px-6 py-3">الولاية</th>
+                                <th className="px-6 py-3">سعر المكتب (د.ج)</th>
+                                <th className="px-6 py-3">سعر المنزل (د.ج)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {settings.deliveryFees.map(fee => (
+                                <tr key={fee.wilaya} className="bg-white dark:bg-slate-800 border-b dark:border-slate-700">
+                                    <td className="px-6 py-4 font-medium whitespace-nowrap">{fee.wilaya}</td>
+                                    <td className="px-6 py-4"><input type="number" value={fee.office} onChange={(e) => handleFeeChange(fee.wilaya, 'office', Number(e.target.value))} className="w-24 p-1 border rounded bg-white text-gray-900 dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600"/></td>
+                                    <td className="px-6 py-4"><input type="number" value={fee.home} onChange={(e) => handleFeeChange(fee.wilaya, 'home', Number(e.target.value))} className="w-24 p-1 border rounded bg-white text-gray-900 dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600"/></td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
-            </div>
 
-            <div className="text-left pt-4">
-                <button onClick={handleSaveSettings} className="px-6 py-2 bg-primary text-white rounded font-bold hover:bg-opacity-90 transition-colors active:scale-95" disabled={isSaving}>
-                    {isSaving ? 'جاري الحفظ...' : 'حفظ إعدادات التوصيل'}
-                </button>
+                <div className="flex justify-end pt-4">
+                    <button onClick={handleSaveSettings} className="px-6 py-2 bg-secondary text-white rounded hover:bg-opacity-90 transition-colors active:scale-95 shadow-lg shadow-secondary/30" disabled={isSaving}>
+                        {isSaving ? '...جاري الحفظ' : 'حفظ إعدادات التوصيل'}
+                    </button>
+                </div>
             </div>
         </div>
     );
 };
 
-const ThemePreview: React.FC<{ theme: ThemeColors, themeMode: 'light' | 'dark' }> = ({ theme, themeMode }) => {
-    const isDark = themeMode === 'dark';
-    const previewStyles = {
-        '--color-primary': theme.primary,
-        '--color-secondary': theme.secondary,
-        '--color-accent': theme.accent,
-        '--color-background': isDark ? '#1e293b' : theme.background, // Use a fixed dark bg for preview
-        '--color-text': isDark ? '#e2e8f0' : theme.text,
-        '--color-text-muted': isDark ? '#94a3b8' : theme.textMuted,
-    } as React.CSSProperties;
-
-    return (
-        <div style={previewStyles} className={`p-4 rounded-lg border-2 ${isDark ? 'dark bg-slate-800 border-slate-700' : 'bg-white border-gray-200'}`}>
-            <h5 className="font-bold mb-3 text-center" style={{color: 'var(--color-text)'}}>{isDark ? 'الوضع الليلي' : 'الوضع النهاري'}</h5>
-            <div className="space-y-3">
-                <p style={{color: 'var(--color-text)'}}>نص أساسي للمعاينة</p>
-                <p style={{color: 'var(--color-text-muted)'}} className="text-sm">نص ثانوي باهت للمعاينة</p>
-                <button className="px-4 py-2 rounded text-white font-semibold w-full" style={{backgroundColor: 'var(--color-primary)'}}>زر أساسي</button>
-                <div className="flex items-center gap-2">
-                    <span className="px-3 py-1 rounded-full text-white text-xs" style={{backgroundColor: 'var(--color-secondary)'}}>
-                        وسم ثانوي
-                    </span>
-                    <span style={{color: 'var(--color-accent)'}} className="font-bold text-sm">نص مميز</span>
-                </div>
-            </div>
-        </div>
-    );
-}
-
-const SettingsManagement: React.FC<{ settings: StoreSettings }> = ({ settings: initialSettings }) => {
-    const [settings, setSettings] = useState<StoreSettings>(initialSettings);
-    const [newAdminPassword, setNewAdminPassword] = useState('');
-    const [isSaving, setIsSaving] = useState(false);
-
-    useEffect(() => {
-        setSettings(initialSettings);
-    }, [initialSettings]);
-    
-    const inputStyle = "w-full p-2 border rounded focus:ring-2 focus:ring-primary/80 focus:border-primary focus:shadow-lg focus:shadow-primary/20 transition-all bg-white text-gray-900 dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600";
-
-
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        const { name, value } = e.target;
-        setSettings(prev => ({ ...prev, [name]: value }));
-    };
-
-    const handleContactChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
-        setSettings(prev => ({
-            ...prev,
-            contactInfo: { ...prev.contactInfo, [name]: value }
-        }));
-    };
-    
-    const handleThemeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
-        setSettings(prev => ({
-            ...prev,
-            theme: { ...prev.theme, [name]: value }
-        }));
-    };
-
-    const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        if(e.target.files && e.target.files[0]) {
-            try {
-                const resizedLogo = await resizeImage(e.target.files[0], 200, 200);
-                setSettings(prev => ({...prev, logo: resizedLogo}));
-            } catch (error) {
-                console.error("Error processing logo:", error);
-                alert('حدث خطأ أثناء معالجة الشعار.');
-            }
-        }
-    };
-    
-    const handleSave = async () => {
-        setIsSaving(true);
-        try {
-            let settingsToSave = { ...settings };
-            if (newAdminPassword) {
-                settingsToSave.adminPassword = newAdminPassword;
-            }
-    
-            // We only save settings that are part of this component.
-            // Other settings like delivery and categories are saved in their own sections.
-            const { deliveryFees, deliveryCompanies, managedCategories, ...mainSettings } = settingsToSave;
-            
-            // Using `mainSettings` ensures we only update the relevant fields for this section.
-            // Using `{ merge: true }` prevents overwriting fields managed by other sections.
-            await setDoc(doc(db, "store", "settings"), mainSettings, { merge: true });
-    
-            alert('تم حفظ الإعدادات!');
-            setNewAdminPassword('');
-        } catch (error) {
-            console.error("Error saving settings: ", error);
-            alert("حدث خطأ أثناء حفظ الإعدادات.");
-        } finally {
-            setIsSaving(false);
-        }
-    };
-
-    return (
-        <div className="space-y-8 animate-fade-in-up">
-            <h3 className="text-3xl font-bold mb-6 text-gray-700 dark:text-gray-300 border-b pb-2 border-gray-200 dark:border-slate-700">إعدادات المتجر</h3>
-
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md space-y-6">
-                <h4 className="text-xl font-bold">الإعدادات الأساسية</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label className="block font-semibold mb-1">اسم المتجر</label>
-                        <input type="text" name="storeName" value={settings.storeName} onChange={handleChange} className={inputStyle}/>
-                    </div>
-                    <div>
-                        <label className="block font-semibold mb-1">شعار المتجر (اللوجو)</label>
-                        <input type="file" accept="image/*" onChange={handleLogoChange} className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"/>
-                        {settings.logo && <img src={settings.logo} alt="logo" className="w-16 h-16 mt-2 rounded-full object-cover"/>}
-                    </div>
-                    <div className="md:col-span-2">
-                        <label className="block font-semibold mb-1">عن المتجر (يظهر في الأسفل)</label>
-                        <textarea name="storeDescription" value={settings.storeDescription} onChange={handleChange} rows={3} className={inputStyle} placeholder="اكتب وصفًا موجزًا عن متجرك..."></textarea>
-                    </div>
-                </div>
-            </div>
-            
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md space-y-6">
-                <h4 className="font-bold">إعدادات حساب المدير</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label className="block font-semibold mb-1">اسم مستخدم المدير</label>
-                        <input type="text" name="adminUsername" value={settings.adminUsername} onChange={handleChange} className={inputStyle}/>
-                    </div>
-                    <div>
-                        <label className="block font-semibold mb-1">كلمة سر المدير الجديدة</label>
-                        <input type="password" value={newAdminPassword} onChange={(e) => setNewAdminPassword(e.target.value)} placeholder="اتركها فارغة لعدم التغيير" className={inputStyle}/>
-                    </div>
-                </div>
-            </div>
-
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md space-y-6">
-                <h4 className="font-bold">معلومات التواصل</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                     <input type="tel" name="phone" placeholder="الهاتف" value={settings.contactInfo.phone} onChange={handleContactChange} className={inputStyle}/>
-                     <input type="email" name="email" placeholder="البريد الإلكتروني" value={settings.contactInfo.email} onChange={handleContactChange} className={inputStyle}/>
-                     <input type="text" name="facebook" placeholder="رابط فيسبوك" value={settings.contactInfo.facebook} onChange={handleContactChange} className={inputStyle}/>
-                     <input type="text" name="instagram" placeholder="رابط انستغرام" value={settings.contactInfo.instagram} onChange={handleContactChange} className={inputStyle}/>
-                     <input type="text" name="whatsapp" placeholder="رابط واتساب" value={settings.contactInfo.whatsapp} onChange={handleContactChange} className={inputStyle}/>
-                </div>
-            </div>
-            
-             <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md space-y-6">
-                 <h4 className="font-bold text-xl">ألوان الموقع</h4>
-                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                     {/* Color Inputs */}
-                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                        {Object.entries(settings.theme).map(([key, value]) => (
-                            <div key={key}>
-                                <label className="capitalize text-sm font-medium dark:text-slate-300">{key}</label>
-                                <div className="flex items-center border rounded dark:border-slate-600 focus-within:ring-2 focus-within:ring-primary overflow-hidden">
-                                    <input type="color" name={key} value={value} onChange={handleThemeChange} className="w-10 h-10 p-0 bg-transparent border-0 cursor-pointer"/>
-                                    <input type="text" name={key} value={value} onChange={handleThemeChange} className="w-full p-2 bg-transparent focus:outline-none"/>
-                                </div>
-                            </div>
-                        ))}
-                     </div>
-                     {/* Preview */}
-                     <div className="space-y-4 bg-gray-50 dark:bg-slate-900/50 p-4 rounded-lg">
-                         <h5 className="font-bold text-center">معاينة حية</h5>
-                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <ThemePreview theme={settings.theme} themeMode="light" />
-                            <ThemePreview theme={settings.theme} themeMode="dark" />
-                         </div>
-                     </div>
-                 </div>
-            </div>
-
-            <div className="text-left pt-4">
-                <button onClick={handleSave} className="px-6 py-2 bg-primary text-white rounded font-bold hover:bg-opacity-90 transition-colors active:scale-95" disabled={isSaving}>
-                    {isSaving ? 'جاري الحفظ...' : 'حفظ الإعدادات'}
-                </button>
-            </div>
-        </div>
-    );
-};
-
-export const AdminDashboard = () => {
+{/* FIX: Add the missing AdminDashboard component and export it */}
+export const AdminDashboard: React.FC = () => {
     const { state, dispatch } = useContext(StoreContext);
-    const [activeView, setActiveView] = useState('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'orders' | 'products' | 'settings'>('overview');
+    const { orders, products, settings } = state;
 
     const handleSaveSettings = async (newSettings: StoreSettings) => {
         await setDoc(doc(db, "store", "settings"), newSettings, { merge: true });
     };
-    
+
     const goToCustomer = () => dispatch({ type: 'SET_VIEW_MODE', payload: ViewMode.CUSTOMER });
     const logout = () => {
         if (window.confirm('هل أنت متأكد من تسجيل الخروج؟')) {
             dispatch({ type: 'LOGOUT' });
         }
     };
+    
+    const toggleTheme = () => dispatch({ type: 'TOGGLE_THEME_MODE' });
 
-    const menuItems = [
-        { id: 'overview', label: 'نظرة عامة', icon: <ChartPieIcon className="w-6 h-6" /> },
-        { id: 'orders', label: 'الطلبات', count: state.orders.length, icon: <ClipboardDocumentListIcon className="w-6 h-6" /> },
-        { id: 'products', label: 'المنتجات والتصنيفات', count: state.products.length, icon: <TagIcon className="w-6 h-6" /> },
-        { id: 'delivery', label: 'إعدادات التوصيل', icon: <TruckIcon className="w-6 h-6" /> },
-        { id: 'settings', label: 'الإعدادات العامة', icon: <Cog6ToothIcon className="w-6 h-6" /> },
+    const tabs = [
+        { id: 'overview', label: 'نظرة عامة', icon: <ChartPieIcon className="w-5 h-5"/>, component: <DashboardOverview orders={orders} products={products} /> },
+        { id: 'orders', label: 'الطلبات', icon: <ClipboardDocumentListIcon className="w-5 h-5"/>, component: <OrdersManagement orders={orders} /> },
+        { id: 'products', label: 'المنتجات والتصنيفات', icon: <TagIcon className="w-5 h-5"/>, component: <ProductsAndCategoriesManagement products={products} /> },
+        { id: 'settings', label: 'الإعدادات', icon: <Cog6ToothIcon className="w-5 h-5"/>, component: <DeliverySettingsManagement settings={settings} onSave={handleSaveSettings} /> },
     ];
 
-    const renderContent = () => {
-        switch (activeView) {
-            case 'overview':
-                return <DashboardOverview orders={state.orders} products={state.products} />;
-            case 'orders':
-                return <OrdersManagement orders={state.orders} />;
-            case 'products':
-                return <ProductsAndCategoriesManagement products={state.products} />;
-            case 'delivery':
-                return <DeliverySettingsManagement settings={state.settings} onSave={handleSaveSettings} />;
-            case 'settings':
-                return <SettingsManagement settings={state.settings} />;
-            default:
-                return null;
-        }
-    };
-
     return (
-        <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900 text-text-base dark:text-gray-200 transition-colors duration-300">
-            {/* Sidebar */}
-            <aside className="w-72 bg-white dark:bg-slate-800 shadow-lg flex-shrink-0 p-4 flex flex-col">
-                <nav className="space-y-2 flex-grow">
-                    {menuItems.map(item => (
-                        <button 
-                            key={item.id}
-                            onClick={() => setActiveView(item.id)}
-                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-right font-semibold transition-all duration-200 ${
-                                activeView === item.id 
-                                ? 'bg-primary text-white shadow-lg shadow-primary/30' 
-                                : 'text-text-muted dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 hover:text-text-base dark:hover:text-slate-200'
-                            }`}
-                        >
-                            {item.icon}
-                            <span>{item.label}</span>
-                            {item.count !== undefined && (
-                                <span className={`mr-auto text-xs font-bold px-2 py-0.5 rounded-full ${
-                                    activeView === item.id ? 'bg-white/20' : 'bg-gray-200 text-gray-700 dark:bg-slate-600 dark:text-slate-200'
-                                }`}>
-                                    {item.count}
-                                </span>
-                            )}
+        <div dir="rtl" className="min-h-screen bg-gray-100 dark:bg-slate-900 text-gray-800 dark:text-slate-300 font-sans transition-colors duration-300">
+            <div className="flex">
+                {/* Sidebar */}
+                <aside className="w-64 bg-white dark:bg-slate-800/90 dark:backdrop-blur-sm shadow-lg h-screen sticky top-0 flex flex-col border-l border-gray-200 dark:border-slate-700">
+                    <div className="p-6 text-center border-b dark:border-slate-700">
+                        <img src={settings.logo} alt="Logo" className="w-16 h-16 mx-auto rounded-full shadow-md" />
+                        <h2 className="text-xl font-bold mt-3 text-primary">{settings.storeName}</h2>
+                        <p className="text-sm text-text-muted dark:text-slate-400">لوحة التحكم</p>
+                    </div>
+                    <nav className="flex-1 p-4 space-y-2">
+                        {tabs.map(tab => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id as any)}
+                                className={`w-full flex items-center gap-4 px-4 py-3 rounded-lg text-right font-semibold transition-all duration-200 group ${activeTab === tab.id ? 'bg-primary/10 text-primary shadow-sm' : 'hover:bg-gray-100 dark:hover:bg-slate-700/50'}`}
+                            >
+                                {tab.icon}
+                                <span>{tab.label}</span>
+                                {tab.id === 'orders' && orders.filter(o => o.status === OrderStatus.PENDING).length > 0 && (
+                                    <span className="mr-auto bg-yellow-400 text-yellow-900 text-xs font-bold px-2 py-0.5 rounded-full animate-pulse">{orders.filter(o => o.status === OrderStatus.PENDING).length}</span>
+                                )}
+                            </button>
+                        ))}
+                    </nav>
+                     <div className="p-4 border-t dark:border-slate-700 space-y-2">
+                        <button onClick={goToCustomer} title="عرض كزبون" className="w-full flex items-center gap-4 px-4 py-3 rounded-lg text-right font-semibold transition-all duration-200 hover:bg-gray-100 dark:hover:bg-slate-700/50 group">
+                            <UserCircleIcon className="w-6 h-6 text-text-muted dark:text-slate-400 group-hover:text-primary transition-colors"/>
+                            <span>عرض كزبون</span>
                         </button>
-                    ))}
-                </nav>
-                <div className="mt-auto pt-4 border-t border-gray-200 dark:border-slate-700 space-y-2">
-                    <button 
-                        onClick={goToCustomer}
-                        className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-right font-semibold transition-colors text-text-muted dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 hover:text-text-base dark:hover:text-slate-200"
-                    >
-                        <UserCircleIcon className="w-6 h-6" />
-                        <span>عرض المتجر</span>
-                    </button>
-                    <button 
-                        onClick={logout}
-                        className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-right font-semibold transition-colors text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-600"
-                    >
-                        <LogoutIcon className="w-6 h-6" />
-                        <span>تسجيل الخروج</span>
-                    </button>
-                </div>
-            </aside>
+                        <button onClick={toggleTheme} className="w-full flex items-center gap-4 px-4 py-3 rounded-lg text-right font-semibold transition-all duration-200 hover:bg-gray-100 dark:hover:bg-slate-700/50 group">
+                            {state.themeMode === 'light' ? <MoonIcon className="w-6 h-6 text-text-muted dark:text-slate-400"/> : <SunIcon className="w-6 h-6 text-yellow-400"/>}
+                            <span>{state.themeMode === 'light' ? 'الوضع الليلي' : 'الوضع النهاري'}</span>
+                        </button>
+                        <button onClick={logout} title="تسجيل الخروج" className="w-full flex items-center gap-4 px-4 py-3 rounded-lg text-right font-semibold text-red-500 transition-all duration-200 hover:bg-red-50 dark:hover:bg-red-900/20 group">
+                            <LogoutIcon className="w-6 h-6"/>
+                            <span>تسجيل الخروج</span>
+                        </button>
+                    </div>
+                </aside>
 
-            {/* Main Content */}
-            <main className="flex-1 p-10 overflow-y-auto bg-gray-50/50 dark:bg-slate-900">
-                {renderContent()}
-            </main>
+                {/* Main Content */}
+                <main className="flex-1 p-8 overflow-y-auto">
+                   {tabs.find(t => t.id === activeTab)?.component}
+                </main>
+            </div>
         </div>
     );
 };

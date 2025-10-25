@@ -1,4 +1,3 @@
-
 import React, { createContext, useReducer, useEffect, Dispatch } from 'react';
 import type { AppState, Action, Product, Order, StoreSettings, CartItem } from '../types';
 import { ViewMode } from '../types';
@@ -15,7 +14,8 @@ const initialState: AppState = {
   categories: ['الكل', ...(INITIAL_SETTINGS.managedCategories || [])],
   isLoggedIn: false,
   dbStatus: 'loading',
-  themeMode: 'dark', // Default to dark mode
+  themeMode: 'light', // Default to light mode
+  toasts: [],
 };
 
 const storeReducer = (state: AppState, action: Action): AppState => {
@@ -65,6 +65,7 @@ const storeReducer = (state: AppState, action: Action): AppState => {
         deliveryFees: firestoreSettings.deliveryFees || INITIAL_SETTINGS.deliveryFees,
         deliveryCompanies: firestoreSettings.deliveryCompanies || INITIAL_SETTINGS.deliveryCompanies,
         managedCategories: firestoreSettings.managedCategories || INITIAL_SETTINGS.managedCategories,
+        productCardStyle: firestoreSettings.productCardStyle || INITIAL_SETTINGS.productCardStyle,
       };
       
       const categories = ['الكل', ...(settings.managedCategories || [])];
@@ -92,6 +93,10 @@ const storeReducer = (state: AppState, action: Action): AppState => {
         sessionStorage.removeItem('isLoggedIn');
         return { ...state, isLoggedIn: false, viewMode: ViewMode.CUSTOMER };
     }
+    case 'SHOW_TOAST':
+      return { ...state, toasts: [...state.toasts, action.payload] };
+    case 'HIDE_TOAST':
+      return { ...state, toasts: state.toasts.filter(t => t.id !== action.payload) };
     default:
       return state;
   }

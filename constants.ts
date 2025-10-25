@@ -152,4 +152,5 @@ export const INITIAL_SETTINGS: StoreSettings = {
   adminUsername: 'admin',
   adminPassword: 'admin',
   managedCategories: ['ملابس', 'أحذية', 'إلكترونيات'],
+  productCardStyle: 'default',
 };

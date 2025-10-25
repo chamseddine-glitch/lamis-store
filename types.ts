@@ -1,4 +1,3 @@
-
 export enum ViewMode {
   CUSTOMER = 'CUSTOMER',
   ADMIN = 'ADMIN',
@@ -98,6 +97,13 @@ export interface StoreSettings {
   adminUsername: string;
   adminPassword: string;
   managedCategories?: string[];
+  productCardStyle?: 'default' | 'minimal' | 'overlay';
+}
+
+export interface ToastMessage {
+  id: number;
+  message: string;
+  type: 'success' | 'info' | 'error';
 }
 
 export interface AppState {
@@ -110,6 +116,7 @@ export interface AppState {
   isLoggedIn: boolean;
   dbStatus: 'loading' | 'connected' | 'error';
   themeMode: 'light' | 'dark';
+  toasts: ToastMessage[];
 }
 
 export type Action =
@@ -134,4 +141,6 @@ export type Action =
   | { type: 'UPDATE_CATEGORY'; payload: { oldCategory: string; newCategory: string } }
   | { type: 'DELETE_CATEGORY'; payload: string }
   | { type: 'LOGIN' }
-  | { type: 'LOGOUT' };
+  | { type: 'LOGOUT' }
+  | { type: 'SHOW_TOAST'; payload: ToastMessage }
+  | { type: 'HIDE_TOAST'; payload: number }; // payload is toast id

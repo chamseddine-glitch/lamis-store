@@ -1,5 +1,3 @@
-
-
 import React, { useState, useContext, useMemo, useEffect } from 'react';
 import { StoreContext } from '../context/StoreContext';
 import type { Product, CartItem, Order } from '../types';
@@ -11,44 +9,96 @@ import { collection, addDoc, serverTimestamp, doc, runTransaction } from 'fireba
 
 // ProductCard Component
 const ProductCard: React.FC<{ product: Product; onClick: () => void; }> = ({ product, onClick }) => {
-    return (
-        <div onClick={onClick} className="cursor-pointer group relative bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 ease-in-out text-right w-full flex flex-col hover:-translate-y-2">
-            <div className="relative w-full overflow-hidden">
-                <img src={product.images[0]} alt={product.name} className="h-64 w-full object-cover object-center transition-transform duration-500 group-hover:scale-110" />
-                {product.isOnSale && <div className="absolute top-3 left-3 bg-secondary text-white text-xs font-bold px-3 py-1.5 rounded-full z-10 animate-subtle-bounce">تخفيض</div>}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity duration-300 flex items-center justify-center">
-                    <div className="w-16 h-16 bg-white/90 dark:bg-slate-800/80 backdrop-blur-sm rounded-full flex items-center justify-center transform scale-0 group-hover:scale-100 transition-transform duration-300" aria-hidden="true">
-                        <EyeIcon className="w-8 h-8 text-primary"/>
-                    </div>
-                </div>
-            </div>
-            <div className="p-4 flex flex-col flex-grow">
-                 <h3 className="text-lg font-bold text-text-base dark:text-slate-200 flex-1 leading-tight mb-2 group-hover:text-primary transition-colors">{product.name}</h3>
-                 <div className="flex justify-between items-start mt-auto">
-                    <div className="flex flex-col items-start">
-                         {product.rating && (
-                            <div className="flex items-center gap-1 text-sm text-yellow-500">
-                                <StarIcon className="w-5 h-5"/>
-                                <span className="font-bold text-gray-700 dark:text-gray-300">{product.rating.average.toFixed(1)}</span>
-                                <span className="text-text-muted dark:text-slate-400">({product.rating.count})</span>
-                            </div>
-                         )}
-                    </div>
-                    <div className="flex flex-col items-end">
-                        {product.isOnSale && typeof product.salePrice === 'number' ? (
-                            <>
-                                <p className="text-lg font-bold text-secondary whitespace-nowrap">{product.salePrice.toLocaleString('ar-DZ')} د.ج</p>
-                                <p className="text-sm text-text-muted dark:text-slate-400 line-through">{product.price.toLocaleString('ar-DZ')} د.ج</p>
-                            </>
-                        ) : (
-                            <p className="text-lg font-bold text-primary whitespace-nowrap">{product.price.toLocaleString('ar-DZ')} د.ج</p>
-                        )}
-                    </div>
-                </div>
-            </div>
+    const { state } = useContext(StoreContext);
+    const cardStyle = state.settings.productCardStyle || 'default';
+
+    const renderPrice = (product: Product) => (
+         <div className="flex flex-col items-end">
+            {product.isOnSale && typeof product.salePrice === 'number' ? (
+                <>
+                    <p className="text-lg font-bold text-secondary whitespace-nowrap">{product.salePrice.toLocaleString('ar-DZ')} د.ج</p>
+                    <p className="text-sm text-text-muted dark:text-slate-400 line-through">{product.price.toLocaleString('ar-DZ')} د.ج</p>
+                </>
+            ) : (
+                <p className="text-lg font-bold text-primary whitespace-nowrap">{product.price.toLocaleString('ar-DZ')} د.ج</p>
+            )}
         </div>
     );
+
+    const renderRating = (product: Product) => product.rating && (
+        <div className="flex items-center gap-1 text-sm text-yellow-500">
+            <StarIcon className="w-5 h-5"/>
+            <span className="font-bold text-gray-700 dark:text-gray-300">{product.rating.average.toFixed(1)}</span>
+            <span className="text-text-muted dark:text-slate-400">({product.rating.count})</span>
+        </div>
+    );
+    
+    switch (cardStyle) {
+        case 'minimal':
+            return (
+                <div onClick={onClick} className="cursor-pointer group bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 text-center w-full flex flex-col">
+                    <div className="relative w-full overflow-hidden">
+                        <img src={product.images[0]} alt={product.name} className="h-64 w-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                         {product.isOnSale && <div className="absolute top-3 left-3 bg-secondary text-white text-xs font-bold px-3 py-1.5 rounded-full z-10">تخفيض</div>}
+                    </div>
+                    <div className="p-4 flex flex-col flex-grow items-center">
+                         <h3 className="text-lg font-bold text-text-base dark:text-slate-200 flex-1 leading-tight mb-2 group-hover:text-primary transition-colors">{product.name}</h3>
+                         <div className="mt-auto">
+                            {renderPrice(product)}
+                            <div className="mt-2 flex justify-center">{renderRating(product)}</div>
+                         </div>
+                    </div>
+                </div>
+            );
+        case 'overlay':
+            return (
+                <div onClick={onClick} className="cursor-pointer group relative bg-slate-800 rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 ease-in-out w-full aspect-[3/4] flex items-end text-white hover:-translate-y-2">
+                    <img src={product.images[0]} alt={product.name} className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
+                    {product.isOnSale && <div className="absolute top-3 left-3 bg-secondary text-white text-xs font-bold px-3 py-1.5 rounded-full z-10">تخفيض</div>}
+                    <div className="relative p-4 w-full">
+                        <h3 className="text-lg font-bold leading-tight mb-2">{product.name}</h3>
+                        <div className="flex justify-between items-end">
+                            {renderRating(product)}
+                            <div className="flex flex-col items-end">
+                                {product.isOnSale && typeof product.salePrice === 'number' ? (
+                                    <>
+                                        <p className="text-lg font-bold text-secondary whitespace-nowrap">{product.salePrice.toLocaleString('ar-DZ')} د.ج</p>
+                                        <p className="text-sm line-through opacity-70">{product.price.toLocaleString('ar-DZ')} د.ج</p>
+                                    </>
+                                ) : (
+                                    <p className="text-lg font-bold text-white whitespace-nowrap">{product.price.toLocaleString('ar-DZ')} د.ج</p>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        default: // 'default' style
+            return (
+                 <div onClick={onClick} className="cursor-pointer group relative bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 ease-in-out text-right w-full flex flex-col hover:-translate-y-2">
+                    <div className="relative w-full overflow-hidden">
+                        <img src={product.images[0]} alt={product.name} className="h-64 w-full object-cover object-center transition-transform duration-500 group-hover:scale-110" />
+                        {product.isOnSale && <div className="absolute top-3 left-3 bg-secondary text-white text-xs font-bold px-3 py-1.5 rounded-full z-10 animate-subtle-bounce">تخفيض</div>}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity duration-300 flex items-center justify-center">
+                            <div className="w-16 h-16 bg-white/90 dark:bg-slate-800/80 backdrop-blur-sm rounded-full flex items-center justify-center transform scale-0 group-hover:scale-100 transition-transform duration-300" aria-hidden="true">
+                                <EyeIcon className="w-8 h-8 text-primary"/>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="p-4 flex flex-col flex-grow">
+                         <h3 className="text-lg font-bold text-text-base dark:text-slate-200 flex-1 leading-tight mb-2 group-hover:text-primary transition-colors">{product.name}</h3>
+                         <div className="flex justify-between items-start mt-auto">
+                            <div className="flex flex-col items-start">
+                                 {renderRating(product)}
+                            </div>
+                            {renderPrice(product)}
+                        </div>
+                    </div>
+                </div>
+            );
+    }
 };
 
 const OrderSuccessMessage: React.FC<{ onClose: () => void }> = ({ onClose }) => (
@@ -224,7 +274,14 @@ const OrderModal: React.FC<{ product: Product | null; onClose: () => void; }> = 
             selectedOptions
         };
         dispatch({ type: 'ADD_TO_CART', payload: cartItem });
-        alert(`تمت إضافة "${product.name}" إلى السلة!`);
+        dispatch({
+            type: 'SHOW_TOAST',
+            payload: {
+                id: Date.now(),
+                message: `تمت إضافة "${product.name}" إلى السلة!`,
+                type: 'success',
+            }
+        });
         handleClose();
     };
     
@@ -501,13 +558,15 @@ export const CustomerView: React.FC<{ activeCategory: string; showOffersOnly: bo
                     </div>
                 </div>
 
-                <div key={activeCategory + (showOffersOnly ? 'offers' : '') + searchQuery} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 animate-fade-in-up">
+                <div key={activeCategory + (showOffersOnly ? 'offers' : '') + searchQuery} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                     {filteredProducts.length > 0 ? (
-                        filteredProducts.map(product => (
-                            <ProductCard key={product.id} product={product} onClick={() => setOrderingProduct(product)} />
+                        filteredProducts.map((product, index) => (
+                             <div key={product.id} className="animate-fade-in-up" style={{ animationDelay: `${Math.min(index * 50, 1000)}ms` }}>
+                                <ProductCard product={product} onClick={() => setOrderingProduct(product)} />
+                            </div>
                         ))
                     ) : (
-                        <div className="col-span-full text-center py-16">
+                        <div className="col-span-full text-center py-16 animate-fade-in-up">
                             <ArchiveBoxIcon className="w-16 h-16 mx-auto text-gray-400" />
                             <h3 className="mt-4 text-xl font-semibold text-text-base dark:text-slate-300">{searchQuery.trim() ? 'لا توجد نتائج بحث' : showOffersOnly ? 'لا توجد عروض حالياً' : 'لا توجد منتجات'}</h3>
                             <p className="text-text-muted dark:text-slate-400">{searchQuery.trim() ? `لم نجد أي منتجات تطابق "${searchQuery}".` : showOffersOnly ? 'ترقب عروضنا القادمة!' : 'لم يتم العثور على منتجات في هذا التصنيف حالياً.'}</p>

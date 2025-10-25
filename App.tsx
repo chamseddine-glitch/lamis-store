@@ -2,17 +2,17 @@
 
 import React, { useContext, useEffect, useState, useRef } from 'react';
 import { StoreContext } from './context/StoreContext';
-import { ViewMode } from './types';
+import { ViewMode, ToastMessage } from './types';
 import { AdminDashboard } from './components/AdminDashboard';
 import { CustomerView } from './components/CustomerView';
 import { AdminAuth } from './components/AdminAuth';
-import { ShoppingCartIcon, UserShieldIcon, UserCircleIcon, WhatsAppIcon, LogoutIcon, ExclamationTriangleIcon, HamburgerIcon, SearchIcon, XMarkIcon } from './components/icons';
+import { ShoppingCartIcon, UserShieldIcon, UserCircleIcon, WhatsAppIcon, LogoutIcon, ExclamationTriangleIcon, HamburgerIcon, SearchIcon, XMarkIcon, SunIcon, MoonIcon, CheckCircleSolidIcon, XCircleSolidIcon, InformationCircleSolidIcon } from './components/icons';
 import { CartModal } from './components/CartModal';
 import { SideMenu } from './components/SideMenu';
 
 const Header = ({ onCartClick, onMenuClick, onSearchToggle, isSearchOpen, searchQuery, setSearchQuery }: { onCartClick: () => void; onMenuClick: () => void; onSearchToggle: () => void; isSearchOpen: boolean; searchQuery: string; setSearchQuery: (query: string) => void; }) => {
     const { state, dispatch } = useContext(StoreContext);
-    const { settings, viewMode, cart, isLoggedIn } = state;
+    const { settings, viewMode, cart, isLoggedIn, themeMode } = state;
 
     const goToAdmin = () => dispatch({ type: 'SET_VIEW_MODE', payload: ViewMode.ADMIN });
     const goToCustomer = () => dispatch({ type: 'SET_VIEW_MODE', payload: ViewMode.CUSTOMER });
@@ -23,6 +23,7 @@ const Header = ({ onCartClick, onMenuClick, onSearchToggle, isSearchOpen, search
     };
     
     const searchInputRef = useRef<HTMLInputElement>(null);
+    const toggleTheme = () => dispatch({ type: 'TOGGLE_THEME_MODE' });
 
     useEffect(() => {
         if (isSearchOpen) {
@@ -42,6 +43,13 @@ const Header = ({ onCartClick, onMenuClick, onSearchToggle, isSearchOpen, search
                     <h1 className="text-xl md:text-2xl font-bold text-primary">{settings.storeName}</h1>
                 </div>
                 <div className="flex items-center gap-2">
+                    <button onClick={toggleTheme} className="group p-2" aria-label="تبديل الوضع">
+                        {themeMode === 'light' ? (
+                            <MoonIcon className="h-7 w-7 text-text-muted group-hover:text-primary transition-all duration-200 transform group-hover:scale-110"/>
+                        ) : (
+                            <SunIcon className="h-7 w-7 text-yellow-400 group-hover:text-yellow-500 transition-all duration-200 transform group-hover:scale-110"/>
+                        )}
+                    </button>
                     <button onClick={onSearchToggle} className="group p-2" aria-label="بحث">
                         {isSearchOpen ? (
                              <XMarkIcon className="h-7 w-7 text-primary"/>
@@ -198,11 +206,69 @@ const MaintenanceScreen = () => {
     );
 };
 
-const LoadingScreen = () => (
-    <div className="flex items-center justify-center min-h-screen bg-base-100 dark:bg-gray-900">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-primary"></div>
-    </div>
-);
+const LoadingScreen = () => {
+    return (
+        <div className="flex items-center justify-center min-h-screen bg-base-100 dark:bg-gray-900 p-4">
+            <svg className="animate-spin h-16 w-16 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+        </div>
+    );
+};
+
+const Toast: React.FC<{ toast: ToastMessage, onDismiss: (id: number) => void }> = ({ toast, onDismiss }) => {
+    const [isExiting, setIsExiting] = useState(false);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setIsExiting(true);
+            setTimeout(() => onDismiss(toast.id), 500); // Wait for exit animation
+        }, 3000);
+
+        return () => clearTimeout(timer);
+    }, [toast.id, onDismiss]);
+
+    const handleDismiss = () => {
+         setIsExiting(true);
+         setTimeout(() => onDismiss(toast.id), 500);
+    };
+
+    const icons = {
+        success: <CheckCircleSolidIcon className="w-6 h-6 text-green-500" />,
+        error: <XCircleSolidIcon className="w-6 h-6 text-red-500" />,
+        info: <InformationCircleSolidIcon className="w-6 h-6 text-blue-500" />,
+    };
+
+    return (
+        <div className={`flex items-start gap-4 p-4 mb-4 w-full max-w-sm bg-white dark:bg-slate-800 rounded-lg shadow-2xl ring-1 ring-black ring-opacity-5 ${isExiting ? 'animate-toast-out' : 'animate-toast-in'}`}>
+            <div className="flex-shrink-0">{icons[toast.type]}</div>
+            <div className="flex-1">
+                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{toast.message}</p>
+            </div>
+            <button onClick={handleDismiss} className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700">
+                <XMarkIcon className="w-5 h-5 text-gray-400" />
+            </button>
+        </div>
+    );
+};
+
+const ToastContainer = () => {
+    const { state, dispatch } = useContext(StoreContext);
+    const { toasts } = state;
+
+    const handleDismiss = (id: number) => {
+        dispatch({ type: 'HIDE_TOAST', payload: id });
+    };
+
+    return (
+        <div className="fixed top-4 left-4 z-[9999] space-y-2">
+            {toasts.map(toast => (
+                <Toast key={toast.id} toast={toast} onDismiss={handleDismiss} />
+            ))}
+        </div>
+    );
+};
 
 
 function App() {
@@ -223,74 +289,78 @@ function App() {
         }
     };
     
-    if (state.dbStatus === 'loading') {
-        return <LoadingScreen />;
-    }
+    const renderContent = () => {
+        if (state.dbStatus === 'loading') {
+            return <LoadingScreen />;
+        }
 
-    if (state.dbStatus === 'error') {
-        return <MaintenanceScreen />;
-    }
+        if (state.dbStatus === 'error') {
+            return <MaintenanceScreen />;
+        }
 
-    if (state.viewMode === ViewMode.ADMIN && !state.isLoggedIn) {
-        return <AdminAuth />;
-    }
-    
-    if (state.viewMode === ViewMode.ADMIN && state.isLoggedIn) {
+        if (state.viewMode === ViewMode.ADMIN && !state.isLoggedIn) {
+            return <AdminAuth />;
+        }
+        
+        if (state.viewMode === ViewMode.ADMIN && state.isLoggedIn) {
+            return <AdminDashboard />;
+        }
+
         return (
-            <>
-                <ThemeInjector />
-                <AdminDashboard />
-            </>
+            <div className="flex flex-col min-h-screen bg-base-100 text-text-base dark:bg-gray-900 dark:text-gray-200 transition-colors duration-300">
+                <Header 
+                    onCartClick={() => setIsCartOpen(true)} 
+                    onMenuClick={() => setIsMenuOpen(true)}
+                    onSearchToggle={() => setIsSearchOpen(!isSearchOpen)}
+                    isSearchOpen={isSearchOpen}
+                    searchQuery={searchQuery}
+                    setSearchQuery={handleSearch}
+                />
+                <SideMenu 
+                    isOpen={isMenuOpen} 
+                    onClose={() => setIsMenuOpen(false)} 
+                    onSelectCategory={cat => {
+                        setActiveCategory(cat);
+                        setShowOffersOnly(false);
+                        setSearchQuery('');
+                        setIsMenuOpen(false);
+                    }}
+                    onShowOffers={() => {
+                        setShowOffersOnly(true);
+                        setActiveCategory('الكل');
+                        setSearchQuery('');
+                        setIsMenuOpen(false);
+                    }}
+                    activeCategory={activeCategory}
+                    showOffersOnly={showOffersOnly}
+                    searchQuery={searchQuery}
+                    setSearchQuery={handleSearch}
+                />
+                <main className="flex-grow">
+                    <CustomerView 
+                        activeCategory={activeCategory} 
+                        showOffersOnly={showOffersOnly} 
+                        setActiveCategory={cat => {
+                            setActiveCategory(cat);
+                            setShowOffersOnly(false);
+                            setSearchQuery('');
+                        }}
+                        searchQuery={searchQuery}
+                    />
+                </main>
+                <Footer />
+                <FloatingWhatsApp/>
+                <CartModal isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
+            </div>
         );
     }
 
     return (
-        <div className="flex flex-col min-h-screen bg-base-100 text-text-base dark:bg-gray-900 dark:text-gray-200 transition-colors duration-300">
+        <>
             <ThemeInjector />
-            <Header 
-                onCartClick={() => setIsCartOpen(true)} 
-                onMenuClick={() => setIsMenuOpen(true)}
-                onSearchToggle={() => setIsSearchOpen(!isSearchOpen)}
-                isSearchOpen={isSearchOpen}
-                searchQuery={searchQuery}
-                setSearchQuery={handleSearch}
-            />
-            <SideMenu 
-                isOpen={isMenuOpen} 
-                onClose={() => setIsMenuOpen(false)} 
-                onSelectCategory={cat => {
-                    setActiveCategory(cat);
-                    setShowOffersOnly(false);
-                    setSearchQuery('');
-                    setIsMenuOpen(false);
-                }}
-                onShowOffers={() => {
-                    setShowOffersOnly(true);
-                    setActiveCategory('الكل');
-                    setSearchQuery('');
-                    setIsMenuOpen(false);
-                }}
-                activeCategory={activeCategory}
-                showOffersOnly={showOffersOnly}
-                searchQuery={searchQuery}
-                setSearchQuery={handleSearch}
-            />
-            <main className="flex-grow">
-                <CustomerView 
-                    activeCategory={activeCategory} 
-                    showOffersOnly={showOffersOnly} 
-                    setActiveCategory={cat => {
-                        setActiveCategory(cat);
-                        setShowOffersOnly(false);
-                        setSearchQuery('');
-                    }}
-                    searchQuery={searchQuery}
-                />
-            </main>
-            <Footer />
-            <FloatingWhatsApp/>
-            <CartModal isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
-        </div>
+            <ToastContainer />
+            {renderContent()}
+        </>
     );
 }
 
