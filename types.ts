@@ -45,12 +45,6 @@ export interface DeliveryFee {
   home: number;
 }
 
-export interface DeliveryCompany {
-  name: string;
-  logo: string;
-  hasRealLogo: boolean;
-}
-
 export interface Order {
   id: string;
   customerName: string;
@@ -92,7 +86,10 @@ export interface StoreSettings {
   deliveryFees: DeliveryFee[];
   deliveryCompanies: string[];
   contactInfo: ContactInfo;
-  theme: ThemeColors;
+  theme: {
+    light: ThemeColors;
+    dark: ThemeColors;
+  };
   storeDescription: string;
   adminUsername: string;
   adminPassword: string;

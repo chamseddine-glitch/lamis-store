@@ -10,7 +10,7 @@ import {
 } from './icons';
 import { db } from '../firebase';
 import { collection, doc, addDoc, setDoc, deleteDoc, updateDoc, writeBatch } from 'firebase/firestore';
-import { ALGERIA_DATA, ALL_DELIVERY_COMPANIES } from '../constants';
+import { ALGERIA_DATA } from '../constants';
 import { StoreCustomization } from './StoreCustomization';
 
 // Helper Components
@@ -748,6 +748,7 @@ const ProductsAndCategoriesManagement: React.FC<{ products: Product[] }> = ({ pr
 const DeliverySettingsManagement: React.FC<{ settings: StoreSettings; onSave: (newSettings: StoreSettings) => Promise<void> }> = ({ settings: initialSettings, onSave }) => {
     const [settings, setSettings] = useState<StoreSettings>(initialSettings);
     const [isSaving, setIsSaving] = useState(false);
+    const [newCompany, setNewCompany] = useState('');
 
     useEffect(() => {
         setSettings(initialSettings);
@@ -776,17 +777,23 @@ const DeliverySettingsManagement: React.FC<{ settings: StoreSettings; onSave: (n
         }));
     };
 
-    const handleCompanyToggle = (companyName: string) => {
-        setSettings(prev => {
-            const currentCompanies = prev.deliveryCompanies || [];
-            const isSelected = currentCompanies.includes(companyName);
-            return {
+    const handleAddCompany = (e: React.FormEvent) => {
+        e.preventDefault();
+        const companyToAdd = newCompany.trim();
+        if (companyToAdd && !settings.deliveryCompanies?.includes(companyToAdd)) {
+            setSettings(prev => ({
                 ...prev,
-                deliveryCompanies: isSelected
-                    ? currentCompanies.filter(c => c !== companyName)
-                    : [...currentCompanies, companyName]
-            };
-        });
+                deliveryCompanies: [...(prev.deliveryCompanies || []), companyToAdd]
+            }));
+            setNewCompany('');
+        }
+    };
+    
+    const handleRemoveCompany = (companyToRemove: string) => {
+        setSettings(prev => ({
+            ...prev,
+            deliveryCompanies: (prev.deliveryCompanies || []).filter(c => c !== companyToRemove)
+        }));
     };
 
     const handleSaveSettings = async () => {
@@ -808,24 +815,33 @@ const DeliverySettingsManagement: React.FC<{ settings: StoreSettings; onSave: (n
             
             <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md space-y-6">
                 <h4 className="text-xl font-bold">شركات التوصيل المعتمدة</h4>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4 border rounded-lg bg-gray-50 dark:bg-slate-900/50 dark:border-slate-700 max-h-96 overflow-y-auto">
-                    {ALL_DELIVERY_COMPANIES.map(company => (
-                        <label key={company.name} className={`flex items-center gap-3 p-3 bg-white dark:bg-slate-800 rounded-lg border-2 transition-all cursor-pointer ${(settings.deliveryCompanies?.includes(company.name)) ? 'border-primary shadow-md' : 'border-gray-200 dark:border-slate-700 hover:border-primary/50'}`}>
-                            <input
-                                type="checkbox"
-                                checked={settings.deliveryCompanies?.includes(company.name) || false}
-                                onChange={() => handleCompanyToggle(company.name)}
-                                className="absolute w-0 h-0 opacity-0"
-                            />
-                            {company.hasRealLogo && (
-                                <img src={company.logo} alt={company.name} className="w-8 h-8 object-contain"/>
-                            )}
-                            <span className="font-semibold text-sm flex-grow">{company.name}</span>
-                            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 ${settings.deliveryCompanies?.includes(company.name) ? 'bg-primary border-primary' : 'border-gray-300 dark:border-slate-600'}`}>
-                                {settings.deliveryCompanies?.includes(company.name) && <CheckIcon className="w-4 h-4 text-white"/>}
-                            </div>
-                        </label>
-                    ))}
+                <div className="p-4 border rounded-lg bg-gray-50 dark:bg-slate-900/50 dark:border-slate-700">
+                    <form onSubmit={handleAddCompany} className="flex gap-2 mb-4">
+                        <input 
+                            type="text" 
+                            value={newCompany} 
+                            onChange={e => setNewCompany(e.target.value)}
+                            placeholder="اسم شركة التوصيل الجديدة"
+                            className="flex-grow p-2 border rounded focus:ring-primary focus:border-primary transition bg-white text-gray-900 dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600"
+                        />
+                        <button type="submit" className="px-4 py-2 bg-primary text-white rounded hover:bg-opacity-90 transition-colors active:scale-95">
+                            إضافة
+                        </button>
+                    </form>
+
+                    <div className="flex flex-wrap gap-3">
+                        {(settings.deliveryCompanies || []).map(company => (
+                            <span key={company} className="flex items-center bg-gray-200 text-gray-800 dark:bg-slate-700 dark:text-slate-200 pl-3 pr-1 py-1 rounded-full font-semibold group transition-colors hover:bg-gray-300 dark:hover:bg-slate-600">
+                                {company}
+                                <button onClick={() => handleRemoveCompany(company)} className="mr-2 text-gray-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 opacity-50 group-hover:opacity-100 hover:!opacity-100 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-full p-0.5 transition-all">
+                                    <XMarkIcon className="w-4 h-4" />
+                                </button>
+                            </span>
+                        ))}
+                        {(settings.deliveryCompanies?.length || 0) === 0 && (
+                            <p className="text-text-muted dark:text-slate-400 text-sm">لم تقم بإضافة أي شركات توصيل بعد.</p>
+                        )}
+                    </div>
                 </div>
             </div>
             

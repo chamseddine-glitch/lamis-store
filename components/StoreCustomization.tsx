@@ -75,6 +75,7 @@ const resizeImageForLogo = (file: File, maxWidth: number, maxHeight: number): Pr
 export const StoreCustomization: React.FC<{ settings: StoreSettings; onSave: (newSettings: StoreSettings) => Promise<void> }> = ({ settings: initialSettings, onSave }) => {
     const [settings, setSettings] = useState<StoreSettings>(initialSettings);
     const [isSaving, setIsSaving] = useState(false);
+    const [editingThemeMode, setEditingThemeMode] = useState<'light' | 'dark'>('light');
 
     useEffect(() => {
         setSettings(initialSettings);
@@ -109,7 +110,13 @@ export const StoreCustomization: React.FC<{ settings: StoreSettings; onSave: (ne
     const handleThemeChange = (name: keyof ThemeColors, value: string) => {
         setSettings(prev => ({
             ...prev,
-            theme: { ...prev.theme, [name]: value }
+            theme: {
+                ...prev.theme,
+                [editingThemeMode]: {
+                    ...prev.theme[editingThemeMode],
+                    [name]: value
+                }
+            }
         }));
     };
 
@@ -182,14 +189,24 @@ export const StoreCustomization: React.FC<{ settings: StoreSettings; onSave: (ne
             </div>
 
             <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md space-y-6">
-                <h4 className="text-xl font-bold">ألوان المتجر</h4>
+                <div className="flex justify-between items-center">
+                    <h4 className="text-xl font-bold">ألوان المتجر</h4>
+                    <div className="flex items-center bg-gray-200 dark:bg-slate-700 p-1 rounded-full">
+                        <button onClick={() => setEditingThemeMode('light')} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors ${editingThemeMode === 'light' ? 'bg-white dark:bg-slate-800 shadow' : ''}`}>
+                            الوضع النهاري
+                        </button>
+                        <button onClick={() => setEditingThemeMode('dark')} className={`px-4 py-1 text-sm font-semibold rounded-full transition-colors ${editingThemeMode === 'dark' ? 'bg-white dark:bg-slate-800 shadow' : ''}`}>
+                            الوضع الليلي
+                        </button>
+                    </div>
+                </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-6 p-4 border rounded-lg bg-gray-50 dark:bg-slate-900/50 dark:border-slate-700">
-                    <ColorPicker label="اللون الأساسي" name="primary" value={settings.theme.primary} onChange={handleThemeChange} />
-                    <ColorPicker label="اللون الثانوي" name="secondary" value={settings.theme.secondary} onChange={handleThemeChange} />
-                    <ColorPicker label="لون التنبيه" name="accent" value={settings.theme.accent} onChange={handleThemeChange} />
-                    <ColorPicker label="لون الخلفية" name="background" value={settings.theme.background} onChange={handleThemeChange} />
-                    <ColorPicker label="لون النص" name="text" value={settings.theme.text} onChange={handleThemeChange} />
-                    <ColorPicker label="لون النص الباهت" name="textMuted" value={settings.theme.textMuted} onChange={handleThemeChange} />
+                    <ColorPicker label="اللون الأساسي" name="primary" value={settings.theme[editingThemeMode].primary} onChange={handleThemeChange} />
+                    <ColorPicker label="اللون الثانوي" name="secondary" value={settings.theme[editingThemeMode].secondary} onChange={handleThemeChange} />
+                    <ColorPicker label="لون التنبيه" name="accent" value={settings.theme[editingThemeMode].accent} onChange={handleThemeChange} />
+                    <ColorPicker label="لون الخلفية" name="background" value={settings.theme[editingThemeMode].background} onChange={handleThemeChange} />
+                    <ColorPicker label="لون النص" name="text" value={settings.theme[editingThemeMode].text} onChange={handleThemeChange} />
+                    <ColorPicker label="لون النص الباهت" name="textMuted" value={settings.theme[editingThemeMode].textMuted} onChange={handleThemeChange} />
                 </div>
             </div>
 

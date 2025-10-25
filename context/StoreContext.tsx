@@ -62,8 +62,14 @@ const storeReducer = (state: AppState, action: Action): AppState => {
           ...(firestoreSettings.contactInfo || {}),
         },
         theme: {
-          ...INITIAL_SETTINGS.theme,
-          ...(firestoreSettings.theme || {}),
+          light: {
+            ...INITIAL_SETTINGS.theme.light,
+            ...(firestoreSettings.theme?.light || {}),
+          },
+          dark: {
+            ...INITIAL_SETTINGS.theme.dark,
+            ...(firestoreSettings.theme?.dark || {}),
+          },
         },
         deliveryFees: firestoreSettings.deliveryFees || INITIAL_SETTINGS.deliveryFees,
         deliveryCompanies: firestoreSettings.deliveryCompanies || INITIAL_SETTINGS.deliveryCompanies,

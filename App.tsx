@@ -149,6 +149,7 @@ const ThemeInjector = () => {
 
   useEffect(() => {
     const root = document.documentElement;
+    const activeTheme = themeMode === 'dark' ? settings.theme.dark : settings.theme.light;
 
     if (themeMode === 'dark') {
         root.classList.add('dark');
@@ -156,12 +157,19 @@ const ThemeInjector = () => {
         root.classList.remove('dark');
     }
 
-    root.style.setProperty('--color-primary', settings.theme.primary);
-    root.style.setProperty('--color-secondary', settings.theme.secondary);
-    root.style.setProperty('--color-accent', settings.theme.accent);
-    root.style.setProperty('--color-background', settings.theme.background);
-    root.style.setProperty('--color-text', settings.theme.text);
-    root.style.setProperty('--color-text-muted', settings.theme.textMuted);
+    root.style.setProperty('--color-primary', activeTheme.primary);
+    root.style.setProperty('--color-secondary', activeTheme.secondary);
+    root.style.setProperty('--color-accent', activeTheme.accent);
+    root.style.setProperty('--color-background', activeTheme.background);
+    root.style.setProperty('--color-text', activeTheme.text);
+    root.style.setProperty('--color-text-muted', activeTheme.textMuted);
+    
+    const updateMetaTag = (property: string, content: string) => {
+        const element = document.querySelector(`meta[property='${property}']`) as HTMLMetaElement | null;
+        if (element && content) { // Ensure content is not null/undefined
+            element.content = content;
+        }
+    };
     
     // Dynamically update page title and favicon
     document.title = settingsLoaded ? settings.storeName : 'جاري التحميل...';
@@ -169,6 +177,15 @@ const ThemeInjector = () => {
     if (favicon && settings.logo) {
       favicon.href = settings.logo;
     }
+    
+    // Update OG meta tags for social sharing.
+    // This will run with initial settings first, then with fetched settings.
+    if (settingsLoaded) {
+      updateMetaTag('og:title', settings.storeName);
+      updateMetaTag('og:description', settings.storeDescription);
+      updateMetaTag('og:image', settings.logo);
+    }
+
   }, [settings, themeMode, settingsLoaded]);
 
   return null;

@@ -494,33 +494,23 @@ export const CustomerView: React.FC<{ activeCategory: string; showOffersOnly: bo
     const lastScrollY = useRef(0);
 
     useEffect(() => {
+        // This improved scroll handler hides the filter bar when scrolling down,
+        // and only shows it again when the user scrolls back to the very top of the page.
+        // This provides more screen real estate, especially on mobile.
         const handleScroll = () => {
             const currentScrollY = window.scrollY;
-            const headerHeight = 80; // A bit of buffer for the header
             const scrollDelta = currentScrollY - lastScrollY.current;
+            const topThreshold = 100;
 
-            // Always show the bar when at the top of the page
-            if (currentScrollY < headerHeight) {
+            // Show the bar only when at the top.
+            if (currentScrollY < topThreshold) {
                 setIsFilterBarVisible(true);
-                lastScrollY.current = Math.max(0, currentScrollY);
-                return;
-            }
-
-            // A threshold to prevent jittery behavior on small or bouncy scrolls
-            if (Math.abs(scrollDelta) < 10) {
-                return;
-            }
-
-            // Hide on scroll down, show on scroll up
-            if (scrollDelta > 0) {
-                // User is scrolling down
+            } else if (scrollDelta > 10) { // Hide when scrolling down with some momentum.
                 setIsFilterBarVisible(false);
-            } else {
-                // User is scrolling up
-                setIsFilterBarVisible(true);
             }
+            // On scroll up (when delta < -10), we do nothing, so the bar remains hidden
+            // until the user reaches the topThreshold.
 
-            // Update last scroll position for the next event
             lastScrollY.current = Math.max(0, currentScrollY);
         };
 
