@@ -1,0 +1,238 @@
+
+import React, { useContext, useEffect, useState } from 'react';
+import { StoreContext } from './context/StoreContext';
+import { ViewMode } from './types';
+import { AdminDashboard } from './components/AdminDashboard';
+import { CustomerView } from './components/CustomerView';
+import { AdminAuth } from './components/AdminAuth';
+import { ShoppingCartIcon, UserShieldIcon, UserCircleIcon, WhatsAppIcon, LogoutIcon, ExclamationTriangleIcon, HamburgerIcon } from './components/icons';
+import { CartModal } from './components/CartModal';
+import { SideMenu } from './components/SideMenu';
+
+const Header = ({ onCartClick, onMenuClick }: { onCartClick: () => void; onMenuClick: () => void; }) => {
+    const { state, dispatch } = useContext(StoreContext);
+    const { settings, viewMode, cart, isLoggedIn } = state;
+
+    const goToAdmin = () => dispatch({ type: 'SET_VIEW_MODE', payload: ViewMode.ADMIN });
+    const goToCustomer = () => dispatch({ type: 'SET_VIEW_MODE', payload: ViewMode.CUSTOMER });
+    const logout = () => {
+        if (window.confirm('هل أنت متأكد من تسجيل الخروج؟')) {
+            dispatch({ type: 'LOGOUT' });
+        }
+    };
+
+    return (
+        <header className="bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-40">
+            <div className="container mx-auto px-4 py-3 flex justify-between items-center">
+                <div className="flex items-center gap-4">
+                     <button onClick={onMenuClick} aria-label="فتح القائمة">
+                        <HamburgerIcon className="h-7 w-7 text-text-muted hover:text-text-base transition-colors"/>
+                    </button>
+                    <img src={settings.logo} alt="Store Logo" className="h-10 w-auto"/>
+                    <h1 className="text-xl md:text-2xl font-bold text-primary">{settings.storeName}</h1>
+                </div>
+                <div className="flex items-center gap-4">
+                    <button onClick={onCartClick} className="relative" aria-label={`عربة التسوق، ${cart.length} منتجات`}>
+                        <ShoppingCartIcon className="h-7 w-7 text-text-muted hover:text-text-base transition-colors"/>
+                        {cart.length > 0 && (
+                             <span key={cart.length} className="absolute -top-2 -right-2 bg-secondary text-white text-xs rounded-full h-5 w-5 flex items-center justify-center animate-pop">{cart.length}</span>
+                        )}
+                    </button>
+                    
+                    {/* Admin Actions */}
+                    { isLoggedIn && viewMode === ViewMode.ADMIN ? (
+                        <>
+                            <button onClick={goToCustomer} title="عرض كزبون" aria-label="عرض كزبون">
+                                <UserCircleIcon className="h-7 w-7 text-text-muted hover:text-text-base transition-colors"/>
+                            </button>
+                            <button onClick={logout} title="تسجيل الخروج" aria-label="تسجيل الخروج">
+                                <LogoutIcon className="h-7 w-7 text-red-500 hover:text-red-700 transition-colors"/>
+                            </button>
+                        </>
+                    ) : isLoggedIn && viewMode === ViewMode.CUSTOMER ? (
+                        <button onClick={goToAdmin} title="لوحة التحكم" aria-label="لوحة التحكم">
+                            <UserShieldIcon className="h-7 w-7 text-text-muted hover:text-text-base transition-colors"/>
+                        </button>
+                    ) : null }
+                </div>
+            </div>
+        </header>
+    );
+};
+
+const Footer = () => {
+    const { state } = useContext(StoreContext);
+    const { settings } = state;
+
+    return (
+        <footer className="bg-gray-800 text-white mt-auto">
+            <div className="container mx-auto px-4 py-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-right">
+                    <div>
+                        <h4 className="font-bold text-lg mb-2">تواصل معنا</h4>
+                        <p>الهاتف: <a href={`tel:${settings.contactInfo.phone}`} className="hover:underline">{settings.contactInfo.phone}</a></p>
+                        <p>البريد: <a href={`mailto:${settings.contactInfo.email}`} className="hover:underline">{settings.contactInfo.email}</a></p>
+                    </div>
+                    <div>
+                        <h4 className="font-bold text-lg mb-2">تابعنا</h4>
+                        <div className="flex justify-center md:justify-start gap-4">
+                            <a href={settings.contactInfo.facebook} target="_blank" rel="noopener noreferrer" className="hover:text-gray-300 transition-colors">فيسبوك</a>
+                            <a href={settings.contactInfo.instagram} target="_blank" rel="noopener noreferrer" className="hover:text-gray-300 transition-colors">انستغرام</a>
+                            <a href={settings.contactInfo.whatsapp} target="_blank" rel="noopener noreferrer" className="hover:text-gray-300 transition-colors">واتساب</a>
+                        </div>
+                    </div>
+                     <div>
+                        <h4 className="font-bold text-lg mb-2">عن المتجر</h4>
+                        <p>{settings.storeDescription}</p>
+                    </div>
+                </div>
+                <div className="text-center border-t border-gray-700 mt-8 pt-4">
+                    <p>By Chames Eddine Nouah</p>
+                </div>
+            </div>
+        </footer>
+    );
+};
+
+const FloatingWhatsApp = () => {
+    const { state } = useContext(StoreContext);
+    return (
+        <a href={state.settings.contactInfo.whatsapp} target="_blank" rel="noopener noreferrer" aria-label="تواصل معنا عبر واتساب" className="fixed bottom-6 left-6 bg-green-500 text-white p-4 rounded-full shadow-lg hover:bg-green-600 transition-all z-50 animate-subtle-bounce hover:animate-none">
+            <WhatsAppIcon className="w-8 h-8"/>
+        </a>
+    )
+}
+
+const ThemeInjector = () => {
+  const { state } = useContext(StoreContext);
+  const { settings } = state;
+
+  useEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty('--color-primary', settings.theme.primary);
+    root.style.setProperty('--color-secondary', settings.theme.secondary);
+    root.style.setProperty('--color-accent', settings.theme.accent);
+    root.style.setProperty('--color-background', settings.theme.background);
+    root.style.setProperty('--color-text', settings.theme.text);
+    root.style.setProperty('--color-text-muted', settings.theme.textMuted);
+    
+    document.body.style.backgroundColor = settings.theme.background;
+    document.body.style.color = settings.theme.text;
+
+    // Dynamically update page title and favicon
+    document.title = settings.storeName;
+    const favicon = document.getElementById('favicon') as HTMLLinkElement | null;
+    if (favicon && settings.logo) {
+      favicon.href = settings.logo;
+    }
+  }, [settings]);
+
+  return null;
+};
+
+const MaintenanceScreen = () => {
+    const { state } = useContext(StoreContext);
+    const whatsappLink = state.settings?.contactInfo?.whatsapp;
+
+    return (
+        <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4 text-center" style={{ backgroundColor: 'var(--color-background)', color: 'var(--color-text)' }}>
+            <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full border border-red-200">
+                <ExclamationTriangleIcon className="w-20 h-20 mx-auto text-red-500 mb-4" />
+                <h1 className="text-3xl font-bold text-red-600 mb-2">عذراً، حدث خطأ</h1>
+                <p className="text-lg text-gray-700 mb-6">
+                    فشل الاتصال بالخادم. قد يكون الموقع تحت الصيانة أو يواجه مشكلة تقنية.
+                </p>
+                <p className="text-gray-600">نحن نعمل على إصلاح المشكلة. يرجى المحاولة مرة أخرى لاحقاً.</p>
+                {whatsappLink && (
+                    <>
+                        <p className="text-gray-600 mt-6">للاستفسارات العاجلة، يمكنك التواصل معنا مباشرة:</p>
+                        <a 
+                            href={whatsappLink} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="mt-4 inline-flex items-center gap-3 bg-green-500 text-white px-6 py-3 rounded-full shadow-lg hover:bg-green-600 transition-colors active:scale-95"
+                        >
+                            <WhatsAppIcon className="w-7 h-7"/>
+                            <span>تواصل معنا عبر واتساب</span>
+                        </a>
+                    </>
+                )}
+            </div>
+        </div>
+    );
+};
+
+const LoadingScreen = () => (
+    <div className="flex items-center justify-center min-h-screen bg-base-100">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-primary"></div>
+    </div>
+);
+
+
+function App() {
+    const { state } = useContext(StoreContext);
+    const [isCartOpen, setIsCartOpen] = useState(false);
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    
+    const [activeCategory, setActiveCategory] = useState('الكل');
+    const [showOffersOnly, setShowOffersOnly] = useState(false);
+    
+    if (state.dbStatus === 'loading') {
+        return <LoadingScreen />;
+    }
+
+    if (state.dbStatus === 'error') {
+        return <MaintenanceScreen />;
+    }
+
+    if (state.viewMode === ViewMode.ADMIN && !state.isLoggedIn) {
+        return <AdminAuth />;
+    }
+    
+    if (state.viewMode === ViewMode.ADMIN && state.isLoggedIn) {
+        return (
+            <>
+                <ThemeInjector />
+                <AdminDashboard />
+            </>
+        );
+    }
+
+    return (
+        <div className="flex flex-col min-h-screen bg-base-100 text-text-base">
+            <ThemeInjector />
+            <Header onCartClick={() => setIsCartOpen(true)} onMenuClick={() => setIsMenuOpen(true)} />
+            <SideMenu 
+                isOpen={isMenuOpen} 
+                onClose={() => setIsMenuOpen(false)} 
+                onSelectCategory={cat => {
+                    setActiveCategory(cat);
+                    setShowOffersOnly(false);
+                    setIsMenuOpen(false);
+                }}
+                onShowOffers={() => {
+                    setShowOffersOnly(true);
+                    setActiveCategory('الكل');
+                    setIsMenuOpen(false);
+                }}
+                activeCategory={activeCategory}
+                showOffersOnly={showOffersOnly}
+            />
+            <main className="flex-grow">
+                <CustomerView 
+                    activeCategory={activeCategory} 
+                    showOffersOnly={showOffersOnly} 
+                    setActiveCategory={cat => {
+                        setActiveCategory(cat);
+                        setShowOffersOnly(false);
+                    }} 
+                />
+            </main>
+            <Footer />
+            <FloatingWhatsApp/>
+            <CartModal isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
+        </div>
+    );
+}
+
+export default App;
