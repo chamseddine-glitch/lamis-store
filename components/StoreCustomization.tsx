@@ -27,6 +27,51 @@ const ColorPicker: React.FC<{ label: string; name: keyof ThemeColors; value: str
     </div>
 );
 
+
+const resizeImageForLogo = (file: File, maxWidth: number, maxHeight: number): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      if (!event?.target?.result || typeof event.target.result !== 'string') {
+        return reject(new Error('Failed to read file.'));
+      }
+      
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let { width, height } = img;
+
+        if (width > height) {
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          return reject(new Error('Failed to get canvas context.'));
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Using webp for better compression
+        resolve(canvas.toDataURL('image/webp', 0.9)); 
+      };
+      img.onerror = (err) => reject(new Error('Image failed to load. ' + String(err)));
+    };
+    reader.onerror = (err) => reject(new Error('An error occurred while reading the file. ' + String(err)));
+  });
+};
+
 export const StoreCustomization: React.FC<{ settings: StoreSettings; onSave: (newSettings: StoreSettings) => Promise<void> }> = ({ settings: initialSettings, onSave }) => {
     const [settings, setSettings] = useState<StoreSettings>(initialSettings);
     const [isSaving, setIsSaving] = useState(false);
@@ -38,6 +83,19 @@ export const StoreCustomization: React.FC<{ settings: StoreSettings; onSave: (ne
     const handleBasicChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setSettings(prev => ({ ...prev, [name]: value }));
+    };
+    
+    const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            try {
+                const resizedBase64 = await resizeImageForLogo(file, 256, 256);
+                setSettings(prev => ({ ...prev, logo: resizedBase64 }));
+            } catch (error) {
+                console.error("Error resizing logo:", error);
+                alert("حدث خطأ أثناء معالجة الشعار. يرجى التأكد من أن الملف هو صورة صالحة.");
+            }
+        }
     };
 
     const handleContactChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -90,9 +148,24 @@ export const StoreCustomization: React.FC<{ settings: StoreSettings; onSave: (ne
             
             <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md space-y-6">
                 <h4 className="text-xl font-bold">المعلومات الأساسية</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <InputField label="اسم المتجر" name="storeName" value={settings.storeName} onChange={handleBasicChange} />
-                    <InputField label="رابط الشعار (Logo URL)" name="logo" value={settings.logo} onChange={handleBasicChange} />
+                    <div>
+                        <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">شعار المتجر</label>
+                        <div className="flex items-center gap-4">
+                            <img src={settings.logo} alt="Store Logo" className="w-16 h-16 rounded-full object-cover bg-gray-100 dark:bg-slate-700 border dark:border-slate-600 shadow-sm" />
+                            <label htmlFor="logo-upload" className="cursor-pointer bg-white dark:bg-slate-700 hover:bg-gray-50 dark:hover:bg-slate-600 text-sm font-semibold px-4 py-2 border dark:border-slate-600 rounded-md transition-colors">
+                                تغيير الصورة
+                            </label>
+                            <input 
+                                id="logo-upload" 
+                                type="file" 
+                                accept="image/*" 
+                                onChange={handleLogoChange} 
+                                className="hidden" 
+                            />
+                        </div>
+                    </div>
                 </div>
                 <InputField label="وصف المتجر" name="storeDescription" value={settings.storeDescription} onChange={handleBasicChange} isTextArea />
             </div>
